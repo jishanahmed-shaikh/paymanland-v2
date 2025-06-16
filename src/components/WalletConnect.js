@@ -93,11 +93,25 @@ const WalletConnect = () => {
     const loadPaymanScript = () => {
       console.log("Attempting to load Payman Connect script");
       
-      // Remove any existing script to avoid duplicates
-      const existingScript = document.querySelector('script[src="https://app.paymanai.com/js/pm.js"]');
-      if (existingScript) {
-        document.body.removeChild(existingScript);
+      // Check if script is already loaded and working
+      if (window.PaymanConnect && document.querySelector('#payman-connect-container .payman-button')) {
+        console.log("Payman script already loaded and button exists");
+        return;
       }
+      
+      // Remove any existing scripts and clear containers to avoid duplicates
+      const existingScripts = document.querySelectorAll('script[src="https://app.paymanai.com/js/pm.js"]');
+      existingScripts.forEach(script => {
+        if (script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+      });
+      
+      // Clear all payman containers to remove any existing buttons
+      const containers = document.querySelectorAll('#payman-connect-container');
+      containers.forEach(container => {
+        container.innerHTML = '';
+      });
       
       const script = document.createElement('script');
       script.src = "https://app.paymanai.com/js/pm.js";
@@ -119,12 +133,20 @@ const WalletConnect = () => {
       
       script.setAttribute('data-target', "#payman-connect-container");
       script.setAttribute('data-dark-mode', "true");
+      script.setAttribute('data-instance-id', `payman-${Date.now()}`);
       script.setAttribute('data-styles', JSON.stringify({
-        borderRadius: "8px", 
+        borderRadius: "12px", 
         fontSize: "14px",
-        padding: "10px 20px", 
-        backgroundColor: "#4CAF50",
-        color: "white"
+        padding: "12px 24px", 
+        backgroundColor: "#2d7794",
+        color: "white",
+        border: "none",
+        fontWeight: "600",
+        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        cursor: "pointer",
+        width: "100%",
+        textAlign: "center",
+        letterSpacing: "0.5px"
       }));
       
       script.onload = () => {
@@ -392,121 +414,7 @@ const WalletConnect = () => {
     alert('Wallet Disconnected');
   };
 
-  const handleDirectConnect = async () => {
-    console.log("Direct connect button clicked");
-    setLoading(true);
-    
-    try {
-      const clientId = process.env.REACT_APP_PAYMAN_CLIENT_ID;
-      const clientSecret = process.env.REACT_APP_PAYMAN_CLIENT_SECRET;
-      
-      if (!clientId) {
-        throw new Error("REACT_APP_PAYMAN_CLIENT_ID environment variable is not set");
-      }
-      
-      if (!clientSecret) {
-        throw new Error("REACT_APP_PAYMAN_CLIENT_SECRET environment variable is not set");
-      }
-      
-      console.log("Using Client ID:", clientId);
-      console.log("Client Secret available:", clientSecret ? "Yes" : "No");
-      
-      // Use Client Credentials Flow directly
-      const directClient = PaymanClient.withClientCredentials({
-        clientId: clientId,
-        clientSecret: clientSecret
-      });
-      
-      // Test the connection
-      const testResponse = await directClient.ask("list all wallets");
-      console.log("Test response:", testResponse);
-      
-      // Get the access token
-      const tokenResponse = await directClient.getAccessToken();
-      console.log("Full direct token response:", tokenResponse);
-      
-      // Store the complete token information
-      const tokenData = {
-        accessToken: tokenResponse.accessToken,
-        expiresIn: tokenResponse.expiresIn,
-        tokenType: tokenResponse.tokenType,
-        scope: tokenResponse.scope,
-        timestamp: Date.now()
-      };
-      
-      localStorage.setItem('paymanToken', JSON.stringify(tokenData));
-      console.log("Token received and stored via direct connection:", tokenData);
-      
-      setClient(directClient);
-      setIsConnected(true);
-      
-      // Expose client globally
-      window.paymanClient = directClient;
-      console.log("Payman client exposed globally (direct)");
-      
-      // Add delay before fetching balance
-      setTimeout(() => {
-        fetchBalance(directClient);
-      }, 1000);
-      
-      setLoading(false);
-      
-    } catch (error) {
-      console.error('Direct connect failed:', error);
-      console.error('Error details:', error.response?.data || error.message);
-      setLoading(false);
-      alert(`Direct connect failed: ${error.message || 'Unknown error'}`);
-    }
-  };
-  
-  const handleManualConnect = () => {
-    console.log("Manual connect button clicked");
-    setLoading(true);
-    const width = 500;
-    const height = 600;
-    const left = window.screen.width / 2 - width / 2;
-    const top = window.screen.height / 2 - height / 2;
-
-    // Use environment variable for redirect URI if available, otherwise construct it
-    const redirectUri = process.env.REACT_APP_PAYMAN_REDIRECT_URI || 
-      `${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}/callback`;
-
-    // Use proper OAuth scopes with correct format (comma-separated)
-    const scopes = [
-      'read_balance',
-      'read_list_wallets', 
-      'read_list_payees',
-      'read_list_transactions',
-      'write_create_payee',
-      'write_send_payment',
-      'write_create_wallet'
-    ].join(',');
-
-    const clientId = process.env.REACT_APP_PAYMAN_CLIENT_ID;
-    
-    if (!clientId) {
-      console.error("REACT_APP_PAYMAN_CLIENT_ID environment variable is not set");
-      setLoading(false);
-      alert("Configuration error: Client ID not found. Please check your environment variables.");
-      return;
-    }
-
-    const authUrl = `https://app.paymanai.com/oauth/authorize?` +
-      `client_id=${encodeURIComponent(clientId)}` +
-      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      `&response_type=code` +
-      `&scope=${encodeURIComponent(scopes)}`;
-
-    console.log("Auth URL:", authUrl);
-    console.log("Client ID:", clientId);
-    console.log("Redirect URI:", redirectUri);
-    
-    window.open(
-      authUrl,
-      'Payman Login',
-      `width=${width},height=${height},left=${left},top=${top}`
-    );
-  };
+  // Removed unused fallback connection methods - using only Payman Connect script
 
   // Effect to update global client when client state changes
   useEffect(() => {
@@ -524,36 +432,24 @@ const WalletConnect = () => {
       <div className="wallet-container">
         {!isConnected ? (
           <div className="connect-wrapper">
+            <div className="connect-title">Connect Your Wallet</div>
             <div id="payman-connect-container" className="payman-connect-btn">
               {/* Payman Connect Button will be rendered here */}
               {loading && <span className="loading-indicator">Connecting...</span>}
             </div>
-            
-            {/* Always show fallback button for now until we debug the script loading issue */}
-            <button 
-              className="connect-button fallback" 
-              onClick={handleManualConnect}
-            >
-              Connect Payman Wallet (OAuth)
-            </button>
-            
-            <button 
-              className="connect-button fallback" 
-              onClick={handleDirectConnect}
-              style={{ marginTop: '10px', backgroundColor: '#4a90e2' }}
-            >
-              Connect Direct (Test Mode)
-            </button>
           </div>
         ) : (
           <div className="wallet-info">
+            <div className="wallet-header">
+              <div className="wallet-status">Connected</div>
+              <button className="disconnect-button" onClick={handleDisconnect}>
+                Disconnect
+              </button>
+            </div>
             <div className="balance-container">
-              <span className="balance-label">Balance:</span>
+              <span className="balance-label">Balance</span>
               <span className="balance-amount">{balance ? `${balance} TSD` : 'Loading...'}</span>
             </div>
-            <button className="disconnect-button" onClick={handleDisconnect}>
-              Disconnect
-            </button>
           </div>
         )}
       </div>
