@@ -123,7 +123,78 @@ const ProductPrice = styled.p`
   font-weight: 600;
 `;
 
-// Removed unused styled components to fix build warnings
+// Product view styled components
+const ProductViewHeader = styled.div`
+  display: flex;
+  gap: 30px;
+  margin-bottom: 30px;
+`;
+
+const ProductViewImage = styled(ProductImage)`
+  width: 400px;
+  height: 400px;
+  flex-shrink: 0;
+`;
+
+const ProductViewInfo = styled.div`
+  flex: 1;
+`;
+
+const ProductViewTitle = styled.h2`
+  font-size: 28px;
+  margin-bottom: 15px;
+  color: #2c3e50;
+  font-weight: 600;
+`;
+
+const ProductViewDescription = styled.p`
+  font-size: 16px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+  color: #555555;
+`;
+
+const ProductViewDetails = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+`;
+
+const ProductViewPrice = styled.span`
+  font-size: 24px;
+  color: #3498db;
+  font-weight: 600;
+`;
+
+const ProductViewUpvotes = styled.span`
+  font-size: 18px;
+  color: #7f8c8d;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+`;
+
+const BuyButton = styled.a`
+  background-color: #2ecc71;
+  color: #ffffff;
+  padding: 12px 24px;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 18px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  text-align: center;
+  display: inline-block;
+  cursor: pointer;
+  border: none;
+
+  &:hover {
+    background-color: #27ae60;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+`;
 
 const BackButton = styled.button`
   position: absolute;
