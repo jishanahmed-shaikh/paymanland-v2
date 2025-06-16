@@ -5,7 +5,7 @@ import '../animations.css';
 
 function LandingPage() {
   const navigate = useNavigate();
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(true);
 
   const features = [
     {
@@ -89,7 +89,7 @@ function LandingPage() {
             ) : (
               <iframe
                 className="demo-video"
-                src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0&modestbranding=1"
+                src="https://www.youtube.com/embed/1XU26-WcdqU?si=c-GtB4yNNNRyMQzs"
                 title="Payman Land Demo"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
