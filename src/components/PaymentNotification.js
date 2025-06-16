@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 function PaymentNotification({ notification, onClose, onAccept, onDecline }) {
   const [timeLeft, setTimeLeft] = useState(30); // 30 seconds to respond
   const [isVisible, setIsVisible] = useState(true);
+
+  const handleTimeout = useCallback(() => {
+    setIsVisible(false);
+    setTimeout(() => {
+      onClose();
+    }, 300);
+  }, [onClose]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -17,14 +24,7 @@ function PaymentNotification({ notification, onClose, onAccept, onDecline }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
-
-  const handleTimeout = () => {
-    setIsVisible(false);
-    setTimeout(() => {
-      onClose();
-    }, 300);
-  };
+  }, [handleTimeout]);
 
   const handleAccept = () => {
     setIsVisible(false);

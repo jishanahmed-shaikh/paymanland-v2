@@ -7,7 +7,6 @@ const WalletConnect = () => {
   const [balance, setBalance] = useState(null);
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [scriptLoaded, setScriptLoaded] = useState(false);
   const isFetchingBalance = useRef(false);
   const scriptLoadedRef = useRef(false);
   const containerRef = useRef(null);
@@ -239,7 +238,7 @@ const WalletConnect = () => {
       window.removeEventListener("message", handlePaymanMessage);
       window.removeEventListener('refreshWalletBalance', handleRefreshBalance);
     };
-  }, [handlePaymanMessage]);
+  }, [handlePaymanMessage, client]);
 
   // Separate useEffect for script loading to prevent multiple loads
   useEffect(() => {
@@ -251,7 +250,6 @@ const WalletConnect = () => {
         // Check if script is already loaded globally and button exists
         if (window.PaymanConnect && containerRef.current?.querySelector('.payman-button')) {
           console.log("Payman script already loaded and button exists in container");
-          setScriptLoaded(true);
           scriptLoadedRef.current = true;
           return;
         }
@@ -359,7 +357,6 @@ const WalletConnect = () => {
         
         script.onload = () => {
           console.log("✅ Payman Connect script loaded successfully");
-          setScriptLoaded(true);
           
           // Check if button was created in our container
           setTimeout(() => {
@@ -536,7 +533,6 @@ const WalletConnect = () => {
     
     // Reset script loaded state so it can be loaded again
     scriptLoadedRef.current = false;
-    setScriptLoaded(false);
     
     // Perform comprehensive cleanup on disconnect
     setTimeout(() => {

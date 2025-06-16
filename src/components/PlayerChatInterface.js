@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import multiplayerService from '../services/MultiplayerService';
 
 function PlayerChatInterface({ targetPlayer, currentPlayer, onSendMessage, onClose }) {
@@ -10,38 +10,7 @@ function PlayerChatInterface({ targetPlayer, currentPlayer, onSendMessage, onClo
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
-  useEffect(() => {
-    // Focus on input when component mounts
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-
-    // Setup message listeners
-    setupMessageListeners();
-
-    // Send initial greeting
-    const greeting = {
-      id: Date.now(),
-      type: 'system',
-      content: `You are now chatting with ${targetPlayer.name}`,
-      timestamp: new Date().toISOString()
-    };
-    setMessages([greeting]);
-
-    return () => {
-      // Cleanup listeners
-      multiplayerService.off('direct-message');
-      multiplayerService.off('player-typing');
-      multiplayerService.off('player-stopped-typing');
-    };
-  }, [targetPlayer]);
-
-  useEffect(() => {
-    // Scroll to bottom when new messages arrive
-    scrollToBottom();
-  }, [messages]);
-
-  const setupMessageListeners = () => {
+  const setupMessageListeners = useCallback(() => {
     // Listen for direct messages (SIMPLIFIED)
     multiplayerService.on('direct-message', (messageData) => {
       console.log('🎯 Chat received message:', messageData);
@@ -71,7 +40,38 @@ function PlayerChatInterface({ targetPlayer, currentPlayer, onSendMessage, onClo
         setOtherPlayerTyping(false);
       }
     });
-  };
+  }, [targetPlayer.id]);
+
+  useEffect(() => {
+    // Focus on input when component mounts
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+
+    // Setup message listeners
+    setupMessageListeners();
+
+    // Send initial greeting
+    const greeting = {
+      id: Date.now(),
+      type: 'system',
+      content: `You are now chatting with ${targetPlayer.name}`,
+      timestamp: new Date().toISOString()
+    };
+    setMessages([greeting]);
+
+    return () => {
+      // Cleanup listeners
+      multiplayerService.off('direct-message');
+      multiplayerService.off('player-typing');
+      multiplayerService.off('player-stopped-typing');
+    };
+  }, [targetPlayer, setupMessageListeners]);
+
+  useEffect(() => {
+    // Scroll to bottom when new messages arrive
+    scrollToBottom();
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

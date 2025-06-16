@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import multiplayerService from '../services/MultiplayerService';
 import PaymentInterface from './PaymentInterface';
 import PlayerChatInterface from './PlayerChatInterface';
