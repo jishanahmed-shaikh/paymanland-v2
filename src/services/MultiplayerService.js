@@ -77,7 +77,7 @@ class MultiplayerService {
     // Player assignment (when we join)
     this.socket.on('player-assigned', (playerData) => {
       this.currentPlayer = playerData;
-      console.log('Player assigned:', playerData);
+      console.log('✅ Player assigned:', playerData);
       this.emit('player-assigned', playerData);
     });
 
@@ -137,6 +137,26 @@ class MultiplayerService {
       this.emit('chat-message', message);
     });
 
+    // Direct messages (SIMPLIFIED)
+    this.socket.on('direct-message', (messageData) => {
+      console.log('📨 Received direct message:', messageData);
+      this.emit('direct-message', messageData);
+    });
+
+    // Typing indicators
+    this.socket.on('player-typing', (typingData) => {
+      this.emit('player-typing', typingData);
+    });
+
+    this.socket.on('player-stopped-typing', (typingData) => {
+      this.emit('player-stopped-typing', typingData);
+    });
+
+    // Payment notifications
+    this.socket.on('payment-received', (paymentData) => {
+      this.emit('payment-received', paymentData);
+    });
+
     // Connection monitoring
     this.socket.on('pong', () => {
       this.emit('pong');
@@ -194,6 +214,46 @@ class MultiplayerService {
     if (!this.socket || !this.isConnected) return;
 
     this.socket.emit('player-chat', { message });
+  }
+
+  // Send direct message to specific player (SIMPLIFIED)
+  sendDirectMessage(messageData) {
+    if (!this.socket || !this.isConnected) {
+      console.log('❌ Not connected to server');
+      return;
+    }
+
+    console.log('🔄 Sending direct message:', messageData);
+
+    this.socket.emit('direct-message', {
+      toPlayerId: messageData.toPlayer.id,
+      message: messageData.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  // Send typing indicator
+  sendTypingIndicator(targetPlayerId, isTyping) {
+    if (!this.socket || !this.isConnected) return;
+
+    this.socket.emit('typing-indicator', {
+      targetPlayerId: targetPlayerId,
+      isTyping: isTyping
+    });
+  }
+
+  // Send payment notification
+  sendPaymentNotification(paymentData) {
+    if (!this.socket || !this.isConnected) return;
+
+    this.socket.emit('payment-notification', {
+      toPlayerId: paymentData.toPlayer.id,
+      fromPlayer: paymentData.fromPlayer,
+      amount: paymentData.amount,
+      currency: paymentData.currency,
+      message: paymentData.message,
+      timestamp: new Date().toISOString()
+    });
   }
 
   // Get all other players

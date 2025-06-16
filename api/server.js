@@ -178,6 +178,90 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Handle direct messages between players (SIMPLIFIED)
+  socket.on('direct-message', (messageData) => {
+    const senderId = socket.id;
+    const sender = activePlayers.get(senderId);
+    
+    console.log('💬 Direct message received:', messageData);
+    console.log('📋 Sender info:', { senderId, senderName: sender?.name });
+    
+    if (sender && messageData.toPlayerId) {
+      // Find target player's socket
+      const targetSocket = Array.from(io.sockets.sockets.values())
+        .find(s => s.id === messageData.toPlayerId);
+      
+      console.log('🎯 Target socket found:', !!targetSocket);
+      
+      if (targetSocket) {
+        console.log(`✅ Sending message from ${sender.name} to ${messageData.toPlayerId}`);
+        
+        // Send message to target player
+        targetSocket.emit('direct-message', {
+          fromPlayerId: senderId,
+          fromPlayerName: sender.name,
+          message: messageData.message,
+          timestamp: messageData.timestamp
+        });
+        
+        console.log(`💬 Message sent: "${messageData.message}"`);
+      } else {
+        console.log(`❌ Target player ${messageData.toPlayerId} not found`);
+      }
+    } else {
+      console.log('❌ Missing sender or target player ID');
+    }
+  });
+
+  // Handle typing indicators
+  socket.on('typing-indicator', (typingData) => {
+    const senderId = socket.id;
+    const sender = activePlayers.get(senderId);
+    
+    if (sender && typingData.targetPlayerId) {
+      // Find target player's socket
+      const targetSocket = Array.from(io.sockets.sockets.values())
+        .find(s => s.id === typingData.targetPlayerId);
+      
+      if (targetSocket) {
+        if (typingData.isTyping) {
+          targetSocket.emit('player-typing', { playerId: senderId, playerName: sender.name });
+        } else {
+          targetSocket.emit('player-stopped-typing', { playerId: senderId, playerName: sender.name });
+        }
+      }
+    }
+  });
+
+  // Handle payment notifications
+  socket.on('payment-notification', (paymentData) => {
+    const senderId = socket.id;
+    const sender = activePlayers.get(senderId);
+    
+    if (sender && paymentData.toPlayerId) {
+      // Find target player's socket
+      const targetSocket = Array.from(io.sockets.sockets.values())
+        .find(s => s.id === paymentData.toPlayerId);
+      
+      if (targetSocket) {
+        // Send payment notification to target player
+        targetSocket.emit('payment-received', {
+          fromPlayer: {
+            id: senderId,
+            name: sender.name,
+            isPaymanAuthenticated: sender.isPaymanAuthenticated
+          },
+          amount: paymentData.amount,
+          currency: paymentData.currency,
+          message: paymentData.message,
+          timestamp: paymentData.timestamp
+        });
+        
+        console.log(`💰 Payment notification: ${sender.name} sent ${paymentData.amount} ${paymentData.currency} to ${paymentData.toPlayerId}`);
+      }
+    }
+  });
+
   // Handle Payman authentication updates
   socket.on('payman-auth-update', async (authData) => {
     const playerId = socket.id;

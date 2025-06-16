@@ -4,6 +4,8 @@ import Phaser from 'phaser';
 import GameShop from './GameShop';
 import WalletConnect from './WalletConnect';
 import ChatInterface from './ChatInterface';
+import PlayerInteractionInterface from './PlayerInteractionInterface';
+import PaymentNotification from './PaymentNotification';
 import multiplayerService from '../services/MultiplayerService';
 import { 
   createOtherPlayerSprite, 
@@ -25,6 +27,12 @@ function Playground() {
   const [showChat, setShowChat] = useState(false);
   const [chatData, setChatData] = useState(null);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  
+  // Player interaction state
+  const [showPlayerInteraction, setShowPlayerInteraction] = useState(false);
+  const [currentPlayerPosition, setCurrentPlayerPosition] = useState({ x: 0, y: 0 });
+  const [paymentNotification, setPaymentNotification] = useState(null);
+  const [paymanClient, setPaymanClient] = useState(null);
   
   // Multiplayer state
   const [isMultiplayerConnected, setIsMultiplayerConnected] = useState(false);
@@ -53,8 +61,8 @@ function Playground() {
 
     const keyboard = gameInstance.current.input && gameInstance.current.input.keyboard;
     if (keyboard) {
-      if (showChat) {
-        // Pause the game's input when chat is open
+      if (showChat || showPlayerInteraction) {
+        // Pause the game's input when chat or interaction is open
         keyboard.enabled = false;
         keyboard.preventDefault = true;
       } else {
@@ -63,7 +71,15 @@ function Playground() {
         keyboard.preventDefault = false;
       }
     }
-  }, [showChat]);
+  }, [showChat, showPlayerInteraction]);
+
+  // Initialize PayMan client
+  useEffect(() => {
+    const storedTokenData = localStorage.getItem('paymanToken');
+    if (storedTokenData && window.paymanClient) {
+      setPaymanClient(window.paymanClient);
+    }
+  }, []);
 
   // Multiplayer initialization and event handlers
   useEffect(() => {
@@ -203,6 +219,12 @@ function Playground() {
       multiplayerService.on('nearby-players', (players) => {
         setNearbyPlayers(players);
       });
+
+      // Listen for payment notifications
+      multiplayerService.on('payment-received', (notification) => {
+        console.log('Payment notification received:', notification);
+        setPaymentNotification(notification);
+      });
     };
 
     // Initialize after a short delay to ensure everything is loaded
@@ -271,26 +293,39 @@ function Playground() {
 
   // Update sprites when multiplayer players change
   useEffect(() => {
-    if (window.phaserScene && multiplayerPlayers.length > 0) {
-      updateAllOtherPlayers(window.phaserScene, multiplayerPlayers, otherPlayersSprites.current);
+    // Add a small delay to ensure Phaser scene is fully initialized
+    if (window.phaserScene && window.phaserScene.add && multiplayerPlayers.length > 0) {
+      try {
+        updateAllOtherPlayers(window.phaserScene, multiplayerPlayers, otherPlayersSprites.current);
+      } catch (error) {
+        console.error('Error updating other players:', error);
+      }
     }
   }, [multiplayerPlayers, isMultiplayerConnected]);
 
   // Update nearby player names
   useEffect(() => {
-    if (window.phaserScene && nearbyPlayers.length >= 0) {
-      updateNearbyPlayerNames(nearbyPlayers, otherPlayersSprites.current, window.phaserScene);
+    if (window.phaserScene && window.phaserScene.add && nearbyPlayers.length >= 0) {
+      try {
+        updateNearbyPlayerNames(nearbyPlayers, otherPlayersSprites.current, window.phaserScene);
+      } catch (error) {
+        console.error('Error updating nearby player names:', error);
+      }
     }
   }, [nearbyPlayers]);
 
   // Update multiplayer status indicator
   useEffect(() => {
-    if (window.phaserScene) {
-      createMultiplayerStatusIndicator(
-        window.phaserScene, 
-        isMultiplayerConnected, 
-        multiplayerPlayers.length + (isMultiplayerConnected ? 1 : 0)
-      );
+    if (window.phaserScene && window.phaserScene.add) {
+      try {
+        createMultiplayerStatusIndicator(
+          window.phaserScene, 
+          isMultiplayerConnected, 
+          multiplayerPlayers.length + (isMultiplayerConnected ? 1 : 0)
+        );
+      } catch (error) {
+        console.error('Error creating multiplayer status indicator:', error);
+      }
     }
   }, [isMultiplayerConnected, multiplayerPlayers.length]);
 
@@ -877,6 +912,9 @@ function Playground() {
       // Check proximity to sign
       checkSignProximity();
 
+      // Update current player position for interactions
+      setCurrentPlayerPosition({ x: player.x, y: player.y });
+
               // Multiplayer position updates (SIMPLE VERSION)
         if (player && isMultiplayerConnected) {
           // Store current player state for updates
@@ -1056,6 +1094,39 @@ function Playground() {
                 {player.name}
               </div>
             ))}
+            
+            {/* Interact Button */}
+            <button
+              onClick={() => setShowPlayerInteraction(true)}
+              style={{
+                width: '100%',
+                marginTop: '10px',
+                padding: '10px 12px',
+                backgroundColor: THEME.PRIMARY,
+                color: THEME.WHITE,
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                transition: THEME.ANIMATION,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.backgroundColor = THEME.PRIMARY_HOVER;
+                e.target.style.transform = 'scale(1.02)';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.backgroundColor = THEME.PRIMARY;
+                e.target.style.transform = 'scale(1)';
+              }}
+            >
+              <span>💬</span>
+              Interact
+            </button>
           </div>
         )}
 
@@ -1461,6 +1532,92 @@ function Playground() {
         </div>
       )}
       
+      {/* Player Interaction Interface */}
+      {showPlayerInteraction && (
+        <PlayerInteractionInterface
+          currentPlayer={multiplayerService.getCurrentPlayer()}
+          nearbyPlayers={nearbyPlayers}
+          playerPosition={currentPlayerPosition}
+          paymanClient={paymanClient}
+          onClose={() => setShowPlayerInteraction(false)}
+        />
+      )}
+
+      {/* Payment Notification */}
+      {paymentNotification && (
+        <PaymentNotification
+          notification={paymentNotification}
+          onClose={() => setPaymentNotification(null)}
+          onAccept={() => {
+            console.log('Payment accepted:', paymentNotification);
+            // Here you would handle the actual payment acceptance
+            setPaymentNotification(null);
+          }}
+          onDecline={() => {
+            console.log('Payment declined:', paymentNotification);
+            setPaymentNotification(null);
+          }}
+        />
+      )}
+
+      {/* Interact Button */}
+      {nearbyPlayers.length > 0 && !showPlayerInteraction && (
+        <div style={{
+          position: 'fixed',
+          bottom: '80px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <button
+            onClick={() => setShowPlayerInteraction(true)}
+            style={{
+              backgroundColor: '#4caf50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '25px',
+              padding: '15px 25px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              boxShadow: '0 4px 15px rgba(76, 175, 80, 0.4)',
+              transition: 'all 0.3s ease',
+              animation: 'pulse 2s infinite',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+            onMouseOver={(e) => {
+              e.target.style.backgroundColor = '#45a049';
+              e.target.style.transform = 'scale(1.05)';
+              e.target.style.boxShadow = '0 6px 20px rgba(76, 175, 80, 0.6)';
+            }}
+            onMouseOut={(e) => {
+              e.target.style.backgroundColor = '#4caf50';
+              e.target.style.transform = 'scale(1)';
+              e.target.style.boxShadow = '0 4px 15px rgba(76, 175, 80, 0.4)';
+            }}
+          >
+            <span style={{ fontSize: '18px' }}>👥</span>
+            Interact with Players ({nearbyPlayers.length})
+          </button>
+          <div style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            color: 'white',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            fontSize: '12px',
+            fontWeight: 'bold'
+          }}>
+            {nearbyPlayers.length} player{nearbyPlayers.length > 1 ? 's' : ''} nearby
+          </div>
+        </div>
+      )}
+
       {/* Add CSS animations for pulse effect */}
       <style>{`
         @keyframes pulse {
