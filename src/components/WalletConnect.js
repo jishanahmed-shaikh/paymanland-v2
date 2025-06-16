@@ -7,8 +7,10 @@ const WalletConnect = () => {
   const [balance, setBalance] = useState(null);
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [, setScriptLoaded] = useState(false);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
   const isFetchingBalance = useRef(false);
+  const scriptLoadedRef = useRef(false);
+  const containerRef = useRef(null);
   
   // Define exchangeCodeForToken first
   const exchangeCodeForToken = useCallback(async (code) => {
@@ -71,7 +73,7 @@ const WalletConnect = () => {
         
         setLoading(false);
         
-      } catch (clientCredError) {
+      } catch (clientCredentialsError) {
         console.log("Client credentials approach failed, trying auth code...");
         
         // If client credentials doesn't work, try the auth code approach
@@ -233,98 +235,209 @@ const WalletConnect = () => {
     // Set up message listener for the Connect Button message
     window.addEventListener("message", handlePaymanMessage);
     
-    // Load the Payman Connect script
-    const loadPaymanScript = () => {
-      console.log("Attempting to load Payman Connect script");
-      
-      // Check if script is already loaded and working
-      if (window.PaymanConnect && document.querySelector('#payman-connect-container .payman-button')) {
-        console.log("Payman script already loaded and button exists");
-        return;
-      }
-      
-      // Remove any existing scripts and clear containers to avoid duplicates
-      const existingScripts = document.querySelectorAll('script[src="https://app.paymanai.com/js/pm.js"]');
-      existingScripts.forEach(script => {
-        if (script.parentNode) {
-          script.parentNode.removeChild(script);
-        }
-      });
-      
-      // Clear all payman containers to remove any existing buttons
-      const containers = document.querySelectorAll('#payman-connect-container');
-      containers.forEach(container => {
-        container.innerHTML = '';
-      });
-      
-      const script = document.createElement('script');
-      script.src = "https://app.paymanai.com/js/pm.js";
-      
-      const clientId = process.env.REACT_APP_PAYMAN_CLIENT_ID;
-      if (!clientId) {
-        console.error("REACT_APP_PAYMAN_CLIENT_ID environment variable is not set");
-        return;
-      }
-      
-      script.setAttribute('data-client-id', clientId);
-      script.setAttribute('data-scopes', "read_balance,read_list_wallets,read_list_payees,read_list_transactions,write_create_payee,write_send_payment,write_create_wallet");
-      
-      // Use environment variable for redirect URI if available, otherwise construct it
-      const redirectUri = process.env.REACT_APP_PAYMAN_REDIRECT_URI || 
-        `${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}/callback`;
-      console.log("Setting redirect URI to:", redirectUri);
-      script.setAttribute('data-redirect-uri', redirectUri);
-      
-      script.setAttribute('data-target', "#payman-connect-container");
-      script.setAttribute('data-dark-mode', "true");
-      script.setAttribute('data-instance-id', `payman-${Date.now()}`);
-      script.setAttribute('data-styles', JSON.stringify({
-        borderRadius: "12px", 
-        fontSize: "14px",
-        padding: "12px 24px", 
-        backgroundColor: "#2d7794",
-        color: "white",
-        border: "none",
-        fontWeight: "600",
-        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-        cursor: "pointer",
-        width: "100%",
-        textAlign: "center",
-        letterSpacing: "0.5px"
-      }));
-      
-      script.onload = () => {
-        console.log("Payman Connect script loaded successfully");
-        setScriptLoaded(true);
-      };
-      
-      script.onerror = (error) => {
-        console.error("Failed to load Payman Connect script:", error);
-        setScriptLoaded(false);
-      };
-      
-      document.body.appendChild(script);
-      console.log("Script appended to body");
-      
-      // Debug: Check if env variables are available
-      console.log("Client ID used:", clientId);
-      console.log("All environment variables:", {
-        REACT_APP_PAYMAN_CLIENT_ID: process.env.REACT_APP_PAYMAN_CLIENT_ID,
-        REACT_APP_PAYMAN_REDIRECT_URI: process.env.REACT_APP_PAYMAN_REDIRECT_URI,
-        REACT_APP_PAYMAN_CLIENT_SECRET: process.env.REACT_APP_PAYMAN_CLIENT_SECRET ? "Present" : "Missing"
-      });
-    };
-    
-    // Small delay to ensure DOM is fully rendered
-    setTimeout(loadPaymanScript, 300);
-    
     return () => {
       window.removeEventListener("message", handlePaymanMessage);
       window.removeEventListener('refreshWalletBalance', handleRefreshBalance);
     };
-  }, [client, handlePaymanMessage]);
-  
+  }, [handlePaymanMessage]);
 
+  // Separate useEffect for script loading to prevent multiple loads
+  useEffect(() => {
+    // Only load script if not connected and not already loaded and no button exists
+    if (!isConnected && !scriptLoadedRef.current && !containerRef.current?.querySelector('.payman-button')) {
+      const loadPaymanScript = () => {
+        console.log("Attempting to load Payman Connect script");
+        
+        // Check if script is already loaded globally and button exists
+        if (window.PaymanConnect && containerRef.current?.querySelector('.payman-button')) {
+          console.log("Payman script already loaded and button exists in container");
+          setScriptLoaded(true);
+          scriptLoadedRef.current = true;
+          return;
+        }
+        
+        // Prevent multiple script loads
+        if (scriptLoadedRef.current) {
+          console.log("Script loading already in progress");
+          return;
+        }
+        
+        scriptLoadedRef.current = true;
+        
+        // COMPREHENSIVE CLEANUP FUNCTION
+        const cleanupPaymanButtons = () => {
+          console.log("🧹 Performing comprehensive Payman button cleanup...");
+          
+          // Remove any existing scripts
+          const existingScripts = document.querySelectorAll('script[src="https://app.paymanai.com/js/pm.js"]');
+          existingScripts.forEach(script => {
+            if (script.parentNode) {
+              script.parentNode.removeChild(script);
+              console.log("Removed existing Payman script");
+            }
+          });
+          
+          // Remove ONLY orphaned buttons that are NOT in our designated container
+          const buttonSelectors = [
+            'body > .payman-button',
+            'body > button[class*="payman"]',
+            'body > button[id*="payman"]',
+            'body > div[class*="payman-button"]'
+          ];
+          
+          buttonSelectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(element => {
+              // Only remove if it's directly attached to body (orphaned)
+              if (element.parentNode === document.body) {
+                console.log(`Removing orphaned element: ${selector}`, element);
+                element.remove();
+              }
+            });
+          });
+          
+          // Clear the specific container ONLY if we're about to load a new script
+          if (containerRef.current && !window.PaymanConnect) {
+            containerRef.current.innerHTML = '';
+            console.log("Cleared container content for new script load");
+          }
+          
+          // Clear any global Payman state that might cause duplicates
+          if (window.PaymanConnect && !containerRef.current?.querySelector('.payman-button')) {
+            try {
+              // Only clear if there's no legitimate button in our container
+              delete window.PaymanConnect;
+              console.log("Cleared global PaymanConnect");
+            } catch (e) {
+              console.log("Could not clear global PaymanConnect:", e.message);
+            }
+          }
+        };
+        
+        // Perform initial cleanup
+        cleanupPaymanButtons();
+        
+        const script = document.createElement('script');
+        script.src = "https://app.paymanai.com/js/pm.js";
+        
+        const clientId = process.env.REACT_APP_PAYMAN_CLIENT_ID;
+        if (!clientId) {
+          console.error("REACT_APP_PAYMAN_CLIENT_ID environment variable is not set");
+          scriptLoadedRef.current = false;
+          return;
+        }
+        
+        // Create unique instance ID to prevent conflicts
+        const instanceId = `payman-wallet-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        script.setAttribute('data-client-id', clientId);
+        script.setAttribute('data-scopes', "read_balance,read_list_wallets,read_list_payees,read_list_transactions,write_create_payee,write_send_payment,write_create_wallet");
+        
+        // Use environment variable for redirect URI if available, otherwise construct it
+        const redirectUri = process.env.REACT_APP_PAYMAN_REDIRECT_URI || 
+          `${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}/callback`;
+        console.log("Setting redirect URI to:", redirectUri);
+        script.setAttribute('data-redirect-uri', redirectUri);
+        
+        script.setAttribute('data-target', "#payman-connect-container");
+        script.setAttribute('data-dark-mode', "true");
+        script.setAttribute('data-instance-id', instanceId);
+        script.setAttribute('data-styles', JSON.stringify({
+          borderRadius: "12px", 
+          fontSize: "14px",
+          padding: "12px 24px", 
+          backgroundColor: "#2d7794",
+          color: "white",
+          border: "none",
+          fontWeight: "600",
+          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          cursor: "pointer",
+          width: "100%",
+          textAlign: "center",
+          letterSpacing: "0.5px"
+        }));
+        
+        script.onload = () => {
+          console.log("✅ Payman Connect script loaded successfully");
+          setScriptLoaded(true);
+          
+          // Check if button was created in our container
+          setTimeout(() => {
+            const buttonInContainer = containerRef.current?.querySelector('.payman-button');
+            if (buttonInContainer) {
+              console.log("✅ Button successfully created in container:", buttonInContainer);
+            } else {
+              console.log("⚠️ No button found in container after script load");
+            }
+          }, 500);
+          
+          // Additional cleanup after script loads - only remove truly orphaned buttons
+          setTimeout(() => {
+            const orphanedButtons = document.querySelectorAll('body > .payman-button, body > button[class*="payman"]');
+            if (orphanedButtons.length > 0) {
+              console.log(`🧹 Post-load cleanup: removing ${orphanedButtons.length} orphaned buttons`);
+              orphanedButtons.forEach(button => {
+                if (button.parentNode === document.body) {
+                  button.remove();
+                }
+              });
+            }
+            console.log("🧹 Post-load cleanup completed");
+          }, 2000);
+          
+          // Set up periodic cleanup to prevent accumulation - only for orphaned buttons
+          const cleanupInterval = setInterval(() => {
+            const orphanedButtons = document.querySelectorAll('body > .payman-button, body > button[class*="payman"]');
+            if (orphanedButtons.length > 0) {
+              console.log(`🧹 Periodic cleanup: removing ${orphanedButtons.length} orphaned buttons`);
+              orphanedButtons.forEach(button => {
+                if (button.parentNode === document.body) {
+                  button.remove();
+                }
+              });
+            }
+          }, 10000); // Check every 10 seconds (less frequent)
+          
+          // Store cleanup interval for later cleanup
+          window.paymanCleanupInterval = cleanupInterval;
+        };
+        
+        script.onerror = (error) => {
+          console.error("❌ Failed to load Payman Connect script:", error);
+          setScriptLoaded(false);
+          scriptLoadedRef.current = false;
+        };
+        
+        document.head.appendChild(script); // Append to head instead of body
+        console.log("📜 Script appended to head with instance ID:", instanceId);
+      };
+      
+      // Small delay to ensure DOM is fully rendered
+      setTimeout(loadPaymanScript, 500);
+    }
+  }, [isConnected]);
+
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      console.log("🧹 WalletConnect component unmounting - performing cleanup");
+      
+      // Clear cleanup interval
+      if (window.paymanCleanupInterval) {
+        clearInterval(window.paymanCleanupInterval);
+        delete window.paymanCleanupInterval;
+      }
+      
+      // Clean up orphaned buttons when component unmounts
+      const orphanedButtons = document.querySelectorAll('body > .payman-button, body > button[class*="payman"]');
+      orphanedButtons.forEach(button => {
+        if (button.parentNode === document.body) {
+          console.log("Removing orphaned button on unmount:", button);
+          button.remove();
+        }
+      });
+    };
+  }, []);
 
   const fetchBalance = async (paymanClient) => {
     // Prevent multiple simultaneous balance fetches
@@ -404,6 +517,8 @@ const WalletConnect = () => {
   };
 
   const handleDisconnect = () => {
+    console.log("🔌 Disconnecting wallet and cleaning up...");
+    
     localStorage.removeItem('paymanToken');
     setClient(null);
     setIsConnected(false);
@@ -413,10 +528,29 @@ const WalletConnect = () => {
     window.paymanClient = null;
     console.log("Payman client cleared from global scope");
     
+    // Clear cleanup interval
+    if (window.paymanCleanupInterval) {
+      clearInterval(window.paymanCleanupInterval);
+      delete window.paymanCleanupInterval;
+    }
+    
+    // Reset script loaded state so it can be loaded again
+    scriptLoadedRef.current = false;
+    setScriptLoaded(false);
+    
+    // Perform comprehensive cleanup on disconnect
+    setTimeout(() => {
+      const orphanedButtons = document.querySelectorAll('body > .payman-button, body > button[class*="payman"]');
+      orphanedButtons.forEach(button => {
+        if (button.parentNode === document.body) {
+          console.log("Removing orphaned button on disconnect:", button);
+          button.remove();
+        }
+      });
+    }, 100);
+    
     alert('Wallet Disconnected');
   };
-
-  // Removed unused fallback connection methods - using only Payman Connect script
 
   // Effect to update global client when client state changes
   useEffect(() => {
@@ -435,7 +569,11 @@ const WalletConnect = () => {
         {!isConnected ? (
           <div className="connect-wrapper">
             <div className="connect-title">Connect Your Wallet</div>
-            <div id="payman-connect-container" className="payman-connect-btn">
+            <div 
+              id="payman-connect-container" 
+              ref={containerRef}
+              className="payman-connect-btn"
+            >
               {/* Payman Connect Button will be rendered here */}
               {loading && <span className="loading-indicator">Connecting...</span>}
             </div>

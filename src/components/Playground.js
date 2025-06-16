@@ -33,6 +33,20 @@ function Playground() {
   const lastPositionSent = useRef({ x: 0, y: 0, time: 0 });
   const otherPlayersSprites = useRef(new Map());
 
+  // UI Theme Constants
+  const THEME = {
+    PRIMARY: '#2d7794',
+    PRIMARY_HOVER: '#1e5c7a',
+    WHITE: '#ffffff',
+    BACKGROUND_OVERLAY: 'rgba(45, 119, 148, 0.95)',
+    BACKGROUND_LIGHT: 'rgba(255, 255, 255, 0.95)',
+    SUCCESS: '#4CAF50',
+    TEXT_DARK: '#333333',
+    SHADOW: '0 4px 12px rgba(45, 119, 148, 0.2)',
+    BORDER_RADIUS: '12px',
+    ANIMATION: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+  };
+
   // Add this effect to handle game pause when chat is open
   useEffect(() => {
     if (!gameInstance.current) return;
@@ -942,88 +956,163 @@ function Playground() {
   const resetSpeed = () => setSpeed(200);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      <WalletConnect />
-      {/* <PaymanDebug /> */}
+    <div style={{ 
+      width: '100vw', 
+      height: '100vh', 
+      overflow: 'hidden',
+      fontFamily: '"Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif'
+    }}>
       
-      {/* Multiplayer Status Indicator */}
-      {isMultiplayerConnected && (
+      {/* TOP LEFT - Multiplayer Panel */}
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        left: '20px',
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
+        
+        {/* Multiplayer Status & Player Count */}
         <div style={{
-          position: 'absolute',
-          top: '20px',
-          right: '20px',
-          backgroundColor: 'rgba(76, 175, 80, 0.9)',
-          color: 'white',
-          padding: '10px 15px',
-          borderRadius: '20px',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          zIndex: 1000,
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+          background: THEME.BACKGROUND_LIGHT,
+          backdropFilter: 'blur(10px)',
+          border: `2px solid ${THEME.PRIMARY}`,
+          borderRadius: THEME.BORDER_RADIUS,
+          padding: '12px 16px',
+          boxShadow: THEME.SHADOW,
+          transition: THEME.ANIMATION,
+          minWidth: '180px'
         }}>
-          🌐 {multiplayerPlayers.length + 1} players online
-        </div>
-      )}
-
-      {/* Nearby Players List */}
-      {nearbyPlayers.length > 0 && (
-        <div style={{
-          position: 'absolute',
-          bottom: '160px',
-          right: '20px',
-          backgroundColor: 'rgba(45, 119, 148, 0.9)',
-          color: 'white',
-          padding: '10px 15px',
-          borderRadius: '15px',
-          fontSize: '12px',
-          zIndex: 1000,
-          maxWidth: '200px'
-        }}>
-          <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>Nearby Players:</div>
-          {nearbyPlayers.map(player => (
-            <div key={player.id} style={{ marginBottom: '2px' }}>
-              {player.isPaymanAuthenticated ? '✓' : '•'} {player.name}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Enhanced Debug Panel */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{
-          position: 'absolute',
-          top: '70px',
-          right: '20px',
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          color: 'white',
-          padding: '10px',
-          borderRadius: '8px',
-          fontSize: '11px',
-          zIndex: 1000,
-          maxWidth: '250px',
-          fontFamily: 'monospace'
-        }}>
-          <div style={{ fontWeight: 'bold', marginBottom: '5px', color: '#00ff00' }}>
-            🔧 MULTIPLAYER DEBUG
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '6px'
+          }}>
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: isMultiplayerConnected ? THEME.SUCCESS : '#ff4444',
+              animation: isMultiplayerConnected ? 'pulse 2s infinite' : 'none'
+            }}></div>
+            <span style={{
+              color: THEME.TEXT_DARK,
+              fontSize: '12px',
+              fontWeight: '600',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              {isMultiplayerConnected ? 'CONNECTED' : 'DISCONNECTED'}
+            </span>
           </div>
-          <div>Connection: {isMultiplayerConnected ? '🟢 Connected' : '🔴 Disconnected'}</div>
-          <div>Total Players: {multiplayerPlayers.length + (isMultiplayerConnected ? 1 : 0)}</div>
-          <div>Other Players: {multiplayerPlayers.length}</div>
-          <div>Nearby: {nearbyPlayers.length}</div>
-          {multiplayerPlayers.length > 0 && (
-            <div style={{ marginTop: '8px' }}>
-              <div style={{ fontWeight: 'bold' }}>All Players:</div>
-              {multiplayerPlayers.map(player => (
-                <div key={player.id} style={{ fontSize: '10px', marginLeft: '5px' }}>
-                  {player.isPaymanAuthenticated ? '✓' : '•'} {player.name}
-                  <br />
-                  &nbsp;&nbsp;({Math.round(player.x)}, {Math.round(player.y)})
-                </div>
-              ))}
-            </div>
-          )}
+          <div style={{
+            color: THEME.PRIMARY,
+            fontSize: '16px',
+            fontWeight: 'bold'
+          }}>
+            🌐 {multiplayerPlayers.length + (isMultiplayerConnected ? 1 : 0)} players online
+          </div>
         </div>
-      )}
+
+        {/* Nearby Players Panel */}
+        {nearbyPlayers.length > 0 && (
+          <div style={{
+            background: THEME.BACKGROUND_LIGHT,
+            backdropFilter: 'blur(10px)',
+            border: `2px solid ${THEME.PRIMARY}`,
+            borderRadius: THEME.BORDER_RADIUS,
+            padding: '12px 16px',
+            boxShadow: THEME.SHADOW,
+            maxWidth: '220px'
+          }}>
+            <div style={{
+              color: THEME.PRIMARY,
+              fontSize: '12px',
+              fontWeight: '600',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              marginBottom: '8px'
+            }}>
+              👥 Nearby Players
+            </div>
+            {nearbyPlayers.map(player => (
+              <div key={player.id} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginBottom: '4px',
+                color: THEME.TEXT_DARK,
+                fontSize: '12px'
+              }}>
+                <span style={{ 
+                  color: player.isPaymanAuthenticated ? THEME.SUCCESS : THEME.PRIMARY,
+                  fontWeight: 'bold'
+                }}>
+                  {player.isPaymanAuthenticated ? '✓' : '•'}
+                </span>
+                {player.name}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Debug Panel - Development Only */}
+        {process.env.NODE_ENV === 'development' && (
+          <div style={{
+            background: THEME.BACKGROUND_OVERLAY,
+            backdropFilter: 'blur(10px)',
+            border: `2px solid ${THEME.PRIMARY}`,
+            borderRadius: THEME.BORDER_RADIUS,
+            padding: '12px 16px',
+            boxShadow: THEME.SHADOW,
+            maxWidth: '250px',
+            fontFamily: 'monospace'
+          }}>
+            <div style={{
+              color: THEME.WHITE,
+              fontSize: '10px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              marginBottom: '8px'
+            }}>
+              🔧 Debug Panel
+            </div>
+            <div style={{ color: THEME.WHITE, fontSize: '10px', lineHeight: '1.4' }}>
+              <div>Status: {isMultiplayerConnected ? '🟢 Connected' : '🔴 Disconnected'}</div>
+              <div>Total: {multiplayerPlayers.length + (isMultiplayerConnected ? 1 : 0)}</div>
+              <div>Others: {multiplayerPlayers.length}</div>
+              <div>Nearby: {nearbyPlayers.length}</div>
+              {multiplayerPlayers.length > 0 && (
+                <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+                  {multiplayerPlayers.map(player => (
+                    <div key={player.id} style={{ fontSize: '9px', marginBottom: '2px' }}>
+                      {player.isPaymanAuthenticated ? '✓' : '•'} {player.name}
+                      <br />
+                      <span style={{ color: 'rgba(255,255,255,0.7)' }}>
+                        ({Math.round(player.x)}, {Math.round(player.y)})
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* TOP RIGHT - Wallet Connect */}
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        right: '20px',
+        zIndex: 1000
+      }}>
+        <WalletConnect />
+      </div>
       
       <div ref={gameRef} style={{ width: '100%', height: '100%' }} />
       
@@ -1033,63 +1122,66 @@ function Playground() {
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          padding: '30px',
+          background: THEME.BACKGROUND_LIGHT,
+          backdropFilter: 'blur(15px)',
+          padding: '40px',
           borderRadius: '20px',
-          boxShadow: '0 0 20px rgba(45, 119, 148, 0.3)',
+          boxShadow: '0 0 30px rgba(45, 119, 148, 0.4)',
           maxWidth: '500px',
           width: '90%',
           zIndex: 1000,
           animation: 'fadeInTransform 0.5s ease-out',
-          border: '2px solid #2d7794'
+          border: `3px solid ${THEME.PRIMARY}`
         }}>
           <div style={{
             position: 'absolute',
-            top: '-20px',
-            left: '-20px',
-            right: '-20px',
-            height: '10px',
-            background: 'linear-gradient(90deg, #2d7794, white, #2d7794)',
-            borderRadius: '10px'
+            top: '-15px',
+            left: '-15px',
+            right: '-15px',
+            height: '8px',
+            background: `linear-gradient(90deg, ${THEME.PRIMARY}, ${THEME.WHITE}, ${THEME.PRIMARY})`,
+            borderRadius: '15px'
           }}></div>
           
           <h2 style={{
-            color: '#2d7794',
+            color: THEME.PRIMARY,
             textAlign: 'center',
-            fontSize: '24px',
-            marginBottom: '20px',
-            fontFamily: 'Arial, sans-serif',
+            fontSize: '26px',
+            marginBottom: '25px',
+            fontWeight: 'bold',
             textShadow: '2px 2px 4px rgba(45, 119, 148, 0.2)'
           }}>✨ Welcome to Payman Land! ✨</h2>
           
           <div style={{
-            color: '#333',
+            color: THEME.TEXT_DARK,
             fontSize: '16px',
             lineHeight: '1.6',
-            marginBottom: '20px'
+            marginBottom: '25px'
           }}>
             <p style={{ marginBottom: '15px' }}>
               🏰 Step into a magical world of fashion and technology where dreams become reality!
             </p>
-            <p style={{ marginBottom: '15px' }}>
-              Here you can:
-            </p>
+            <p style={{ marginBottom: '20px' }}>Here you can:</p>
             <ul style={{
               listStyle: 'none',
               padding: 0,
               margin: '0 0 20px 0'
             }}>
-              <li style={{ margin: '10px 0', display: 'flex', alignItems: 'center' }}>
-                <span style={{ color: '#2d7794', marginRight: '10px' }}>👕</span> Try on clothes virtually with AR magic
+              <li style={{ margin: '12px 0', display: 'flex', alignItems: 'center' }}>
+                <span style={{ color: THEME.PRIMARY, marginRight: '12px', fontSize: '18px' }}>👕</span> 
+                Try on clothes virtually with AR magic
               </li>
-              <li style={{ margin: '10px 0', display: 'flex', alignItems: 'center' }}>
-                <span style={{ color: '#2d7794', marginRight: '10px' }}>💫</span> Get personalized fashion advice from our experts
+              <li style={{ margin: '12px 0', display: 'flex', alignItems: 'center' }}>
+                <span style={{ color: THEME.PRIMARY, marginRight: '12px', fontSize: '18px' }}>💫</span> 
+                Get personalized fashion advice from our experts
               </li>
-              <li style={{ margin: '10px 0', display: 'flex', alignItems: 'center' }}>
-                <span style={{ color: '#2d7794', marginRight: '10px' }}>🔒</span> Shop securely with PayMan's blockchain technology
+              <li style={{ margin: '12px 0', display: 'flex', alignItems: 'center' }}>
+                <span style={{ color: THEME.PRIMARY, marginRight: '12px', fontSize: '18px' }}>🔒</span> 
+                Shop securely with PayMan's blockchain technology
               </li>
-              <li style={{ margin: '10px 0', display: 'flex', alignItems: 'center' }}>
-                <span style={{ color: '#2d7794', marginRight: '10px' }}>✨</span> Explore unique stores with authentic products
+              <li style={{ margin: '12px 0', display: 'flex', alignItems: 'center' }}>
+                <span style={{ color: THEME.PRIMARY, marginRight: '12px', fontSize: '18px' }}>✨</span> 
+                Explore unique stores with authentic products
               </li>
             </ul>
           </div>
@@ -1097,38 +1189,186 @@ function Playground() {
           <button 
             onClick={() => setShowWelcomePopup(false)}
             style={{
-              backgroundColor: '#2d7794',
-              color: 'white',
+              background: `linear-gradient(135deg, ${THEME.PRIMARY} 0%, ${THEME.PRIMARY_HOVER} 100%)`,
+              color: THEME.WHITE,
               border: 'none',
-              padding: '10px 20px',
+              padding: '14px 28px',
               borderRadius: '25px',
               cursor: 'pointer',
               display: 'block',
               margin: '0 auto',
               fontSize: '16px',
               fontWeight: 'bold',
-              transition: 'transform 0.2s ease',
-              boxShadow: '0 4px 8px rgba(45, 119, 148, 0.2)'
+              transition: THEME.ANIMATION,
+              boxShadow: THEME.SHADOW,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
             }}
-            onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
-            onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+            onMouseOver={(e) => {
+              e.target.style.transform = 'scale(1.05)';
+              e.target.style.boxShadow = '0 6px 20px rgba(45, 119, 148, 0.4)';
+            }}
+            onMouseOut={(e) => {
+              e.target.style.transform = 'scale(1)';
+              e.target.style.boxShadow = THEME.SHADOW;
+            }}
           >
             Begin Your Adventure! ✨
           </button>
         </div>
       )}
       
-      <div style={{ position: 'absolute', bottom: '20px', left: '20px', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div style={{ background: 'rgba(255, 255, 255, 0.8)', padding: '20px', borderRadius: '15px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#333' }}>Speed Controls:</div>
-          <button onClick={increaseSpeed} style={buttonStyle}>+100</button>
-          <button onClick={decreaseSpeed} style={buttonStyle}>-100</button>
-          <button onClick={resetSpeed} style={buttonStyle}>Reset</button>
+      {/* BOTTOM LEFT - Enhanced Control Panels */}
+      <div style={{
+        position: 'absolute',
+        bottom: '20px',
+        left: '20px',
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px'
+      }}>
+        
+        {/* Speed Controls Panel */}
+        <div style={{
+          background: THEME.BACKGROUND_LIGHT,
+          backdropFilter: 'blur(10px)',
+          border: `2px solid ${THEME.PRIMARY}`,
+          borderRadius: THEME.BORDER_RADIUS,
+          padding: '20px',
+          boxShadow: THEME.SHADOW,
+          minWidth: '180px'
+        }}>
+          <div style={{
+            color: THEME.PRIMARY,
+            fontSize: '14px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            letterSpacing: '0.8px',
+            marginBottom: '16px',
+            textAlign: 'center'
+          }}>
+            ⚡ Speed Control
+          </div>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
+          }}>
+            {[
+              { label: '+100', action: increaseSpeed, icon: '⬆️' },
+              { label: '-100', action: decreaseSpeed, icon: '⬇️' },
+              { label: 'Reset', action: resetSpeed, icon: '🔄' }
+            ].map((btn, index) => (
+              <button 
+                key={index}
+                onClick={btn.action} 
+                style={{
+                  background: `linear-gradient(135deg, ${THEME.PRIMARY} 0%, ${THEME.PRIMARY_HOVER} 100%)`,
+                  color: THEME.WHITE,
+                  border: 'none',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  transition: THEME.ANIMATION,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(45, 119, 148, 0.3)';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              >
+                <span>{btn.icon}</span>
+                {btn.label}
+              </button>
+            ))}
+          </div>
+          <div style={{
+            textAlign: 'center',
+            marginTop: '12px',
+            color: THEME.TEXT_DARK,
+            fontSize: '12px',
+            fontWeight: '500'
+          }}>
+            Current: {speed}
+          </div>
         </div>
 
-        <div style={{ background: 'rgba(255, 255, 255, 0.8)', padding: '20px', borderRadius: '15px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <button onClick={() => navigate('/dashboard')} style={buttonStyle}>DASHBOARD</button>
-          <button onClick={() => navigate('/create-avatar')} style={buttonStyle}>Change Avatar</button>
+        {/* Navigation Panel */}
+        <div style={{
+          background: THEME.BACKGROUND_LIGHT,
+          backdropFilter: 'blur(10px)',
+          border: `2px solid ${THEME.PRIMARY}`,
+          borderRadius: THEME.BORDER_RADIUS,
+          padding: '20px',
+          boxShadow: THEME.SHADOW,
+          minWidth: '180px'
+        }}>
+          <div style={{
+            color: THEME.PRIMARY,
+            fontSize: '14px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            letterSpacing: '0.8px',
+            marginBottom: '16px',
+            textAlign: 'center'
+          }}>
+            🎮 Navigation
+          </div>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
+          }}>
+            {[
+              { label: 'Dashboard', action: () => navigate('/dashboard'), icon: '📊' },
+              { label: 'Change Avatar', action: () => navigate('/create-avatar'), icon: '🎨' }
+            ].map((btn, index) => (
+              <button 
+                key={index}
+                onClick={btn.action} 
+                style={{
+                  background: `linear-gradient(135deg, ${THEME.WHITE} 0%, #f8fbff 100%)`,
+                  color: THEME.PRIMARY,
+                  border: `2px solid ${THEME.PRIMARY}`,
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  transition: THEME.ANIMATION,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.background = `linear-gradient(135deg, ${THEME.PRIMARY} 0%, ${THEME.PRIMARY_HOVER} 100%)`;
+                  e.target.style.color = THEME.WHITE;
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(45, 119, 148, 0.3)';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.background = `linear-gradient(135deg, ${THEME.WHITE} 0%, #f8fbff 100%)`;
+                  e.target.style.color = THEME.PRIMARY;
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              >
+                <span>{btn.icon}</span>
+                {btn.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       
@@ -1151,15 +1391,12 @@ function Playground() {
             playerAvatarImage={location.state?.avatarImage || '/assets/ashfront.png'}
             onPaymentSuccess={(product, paymentId) => {
               console.log('Payment successful for:', product.name, 'Payment ID:', paymentId);
-              // You can add additional logic here for successful payments
-              // e.g., add items to inventory, show notifications, etc.
             }}
           />
           <button
             onClick={() => {
               setShowShop(false);
               
-              // Re-enable game input when shop is closed
               if (gameInstance.current && gameInstance.current.input && gameInstance.current.input.keyboard) {
                 gameInstance.current.input.keyboard.enabled = true;
                 gameInstance.current.input.keyboard.preventDefault = false;
@@ -1169,18 +1406,29 @@ function Playground() {
               position: 'absolute',
               top: '20px',
               right: '20px',
-              background: '#ffffff',
-              color: '#333333',
+              background: THEME.WHITE,
+              color: THEME.TEXT_DARK,
               border: 'none',
               borderRadius: '50%',
-              width: '40px',
-              height: '40px',
+              width: '44px',
+              height: '44px',
               fontSize: '20px',
               cursor: 'pointer',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+              boxShadow: THEME.SHADOW,
+              transition: THEME.ANIMATION
+            }}
+            onMouseOver={(e) => {
+              e.target.style.transform = 'scale(1.1)';
+              e.target.style.background = THEME.PRIMARY;
+              e.target.style.color = THEME.WHITE;
+            }}
+            onMouseOut={(e) => {
+              e.target.style.transform = 'scale(1)';
+              e.target.style.background = THEME.WHITE;
+              e.target.style.color = THEME.TEXT_DARK;
             }}
           >
             ✕
@@ -1201,6 +1449,7 @@ function Playground() {
             justifyContent: 'center',
             alignItems: 'center',
             zIndex: 1000,
+            backdropFilter: 'blur(8px)'
           }}
           onKeyDown={(e) => e.stopPropagation()}
         >
@@ -1211,18 +1460,28 @@ function Playground() {
           />
         </div>
       )}
+      
+      {/* Add CSS animations for pulse effect */}
+      <style>{`
+        @keyframes pulse {
+          0% { opacity: 1; }
+          50% { opacity: 0.5; }
+          100% { opacity: 1; }
+        }
+        
+        @keyframes fadeInTransform {
+          from { 
+            opacity: 0; 
+            transform: translate(-50%, -50%) scale(0.9);
+          }
+          to { 
+            opacity: 1; 
+            transform: translate(-50%, -50%) scale(1);
+          }
+        }
+      `}</style>
     </div>
   );
 }
-
-const buttonStyle = {
-  background: '#4CAF50',
-  color: 'white',
-  padding: '10px 15px',
-  border: 'none',
-  borderRadius: '5px',
-  cursor: 'pointer',
-  transition: 'background 0.3s',
-};
 
 export default Playground;
