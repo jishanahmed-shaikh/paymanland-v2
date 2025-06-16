@@ -2,6 +2,13 @@
 env.local
 env
 
+build/
+
+.vercel/
+
+
+
+
 logs
 *.log
 npm-debug.log*
