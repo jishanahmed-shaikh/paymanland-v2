@@ -14,6 +14,16 @@ const WalletConnect = () => {
   useEffect(() => {
     console.log("WalletConnect component mounted");
     
+    // Add event listener for balance refresh
+    const handleRefreshBalance = () => {
+      if (client) {
+        console.log("Refreshing wallet balance after payment...");
+        fetchBalance(client);
+      }
+    };
+    
+    window.addEventListener('refreshWalletBalance', handleRefreshBalance);
+    
     // Check for existing token
     const checkExistingToken = async () => {
       const storedTokenData = localStorage.getItem('paymanToken');
@@ -57,6 +67,11 @@ const WalletConnect = () => {
             await newClient.ask("list all wallets");
             setClient(newClient);
             setIsConnected(true);
+            
+            // Expose client globally
+            window.paymanClient = newClient;
+            console.log("Payman client exposed globally");
+            
             fetchBalance(newClient);
           } catch (error) {
             console.log("Stored token is invalid, clearing it:", error.message);
@@ -139,6 +154,7 @@ const WalletConnect = () => {
     
     return () => {
       window.removeEventListener("message", handlePaymanMessage);
+      window.removeEventListener('refreshWalletBalance', handleRefreshBalance);
     };
   }, []);
   
@@ -212,6 +228,10 @@ const WalletConnect = () => {
         setClient(newClient);
         setIsConnected(true);
         
+        // Expose client globally
+        window.paymanClient = newClient;
+        console.log("Payman client exposed globally (client credentials)");
+        
         // Add delay before fetching balance
         setTimeout(() => {
           fetchBalance(newClient);
@@ -255,6 +275,10 @@ const WalletConnect = () => {
       
       setClient(newClient);
       setIsConnected(true);
+      
+      // Expose client globally
+      window.paymanClient = newClient;
+      console.log("Payman client exposed globally (auth code)");
         
         // Try to fetch balance immediately using the temp client instead of new client
         try {
@@ -360,6 +384,11 @@ const WalletConnect = () => {
     setClient(null);
     setIsConnected(false);
     setBalance(null);
+    
+    // Clear global client
+    window.paymanClient = null;
+    console.log("Payman client cleared from global scope");
+    
     alert('Wallet Disconnected');
   };
 
@@ -410,6 +439,10 @@ const WalletConnect = () => {
       
       setClient(directClient);
       setIsConnected(true);
+      
+      // Expose client globally
+      window.paymanClient = directClient;
+      console.log("Payman client exposed globally (direct)");
       
       // Add delay before fetching balance
       setTimeout(() => {
@@ -474,6 +507,17 @@ const WalletConnect = () => {
       `width=${width},height=${height},left=${left},top=${top}`
     );
   };
+
+  // Effect to update global client when client state changes
+  useEffect(() => {
+    if (client && isConnected) {
+      window.paymanClient = client;
+      console.log("Payman client updated globally");
+    } else {
+      window.paymanClient = null;
+      console.log("Payman client removed from global scope");
+    }
+  }, [client, isConnected]);
 
   return (
     <>

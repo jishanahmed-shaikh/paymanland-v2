@@ -763,7 +763,12 @@ function Playground() {
         }}>
           <GameShop 
             shopData={currentShop} 
-            playerAvatarImage={location.state?.avatarImage || '/assets/ashfront.png'} 
+            playerAvatarImage={location.state?.avatarImage || '/assets/ashfront.png'}
+            onPaymentSuccess={(product, paymentId) => {
+              console.log('Payment successful for:', product.name, 'Payment ID:', paymentId);
+              // You can add additional logic here for successful payments
+              // e.g., add items to inventory, show notifications, etc.
+            }}
           />
           <button
             onClick={() => {
