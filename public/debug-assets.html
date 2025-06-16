@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Asset Debug Test</title>
+</head>
+<body>
+    <h1>Asset Loading Test</h1>
+    <h2>Background Images:</h2>
+    <img src="/assets/bgplayground.jpg" alt="Playground BG" style="width: 200px; height: 150px; object-fit: cover;" />
+    <img src="/assets/bgdashboard.jpg" alt="Dashboard BG" style="width: 200px; height: 150px; object-fit: cover;" />
+    
+    <h2>Avatar Images:</h2>
+    <img src="/assets/ashfront.png" alt="Ash Front" style="width: 100px;" />
+    <img src="/assets/ashback.png" alt="Ash Back" style="width: 100px;" />
+    <img src="/assets/ashleft.png" alt="Ash Left" style="width: 100px;" />
+    <img src="/assets/ashright.png" alt="Ash Right" style="width: 100px;" />
+    
+    <h2>NPC Images:</h2>
+    <img src="/assets/sherif.png" alt="Sheriff" style="width: 100px;" />
+    <img src="/assets/traditionalwearindianavatar.png" alt="Traditional" style="width: 100px;" />
+    <img src="/assets/trekker.png" alt="Trekker" style="width: 100px;" />
+    
+    <h2>Building Images:</h2>
+    <img src="/assets/building1.png" alt="Building 1" style="width: 100px;" />
+    <img src="/assets/tree.png" alt="Tree" style="width: 100px;" />
+    
+    <script>
+        // Check if images load successfully
+        const images = document.querySelectorAll('img');
+        images.forEach((img, index) => {
+            img.onload = () => console.log(`✅ Image ${index + 1} loaded: ${img.src}`);
+            img.onerror = () => console.error(`❌ Image ${index + 1} failed: ${img.src}`);
+        });
+    </script>
+</body>
+</html> 
