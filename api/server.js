@@ -6,21 +6,55 @@ const cors = require('cors');
 const app = express();
 const server = http.createServer(app);
 
-// Enable CORS for all routes
+// Enable CORS for all routes (Production Ready)
+const allowedOrigins = [
+  "http://localhost:3000", 
+  "http://localhost:3001",
+  "https://paymanland.vercel.app", // Your main Vercel domain
+  /\.vercel\.app$/, // All Vercel preview deployments
+  /\.railway\.app$/, // Railway deployments
+  /\.render\.com$/, // Render deployments
+  /\.herokuapp\.com$/ // Heroku deployments
+];
+
 app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:3001", "https://paymanland.vercel.app"],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.some(allowed => {
+      if (typeof allowed === 'string') return allowed === origin;
+      return allowed.test(origin);
+    })) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 
 app.use(express.json());
 
-// Socket.IO setup with CORS
+// Socket.IO setup with CORS (Production Ready)
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:3001", "https://paymanland.vercel.app"],
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.some(allowed => {
+        if (typeof allowed === 'string') return allowed === origin;
+        return allowed.test(origin);
+      })) {
+        return callback(null, true);
+      }
+      
+      callback(new Error('Not allowed by CORS'));
+    },
     methods: ["GET", "POST"],
     credentials: true
-  }
+  },
+  transports: ['websocket', 'polling']
 });
 
 // In-memory storage for active players
