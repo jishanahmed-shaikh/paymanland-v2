@@ -935,7 +935,7 @@ function Playground() {
     return () => {
       game.destroy(true);
     };
-  }, [location, speed]);
+  }, [location, speed, isMultiplayerConnected]);
 
   const increaseSpeed = () => setSpeed((prevSpeed) => prevSpeed + 100);
   const decreaseSpeed = () => setSpeed((prevSpeed) => Math.max(prevSpeed - 100, 0));

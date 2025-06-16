@@ -9,24 +9,24 @@ function AvatarCreation() {
   const navigate = useNavigate();
   const [selectedPokemon] = useState('ash');
 
-  // List of available Pokemon sprites
-  const availablePokemon = [
-    'pikachu',
-    'charizard',
-    'bulbasaur',
-    'squirtle',
-    'mewtwo',
-    'eevee',
-    'snorlax',
-    'gengar',
-    'dragonite',
-    'gyarados'
-  ];
-
   useEffect(() => {
+    // List of available Pokemon sprites (moved inside useEffect)
+    const availablePokemon = [
+      'pikachu',
+      'charizard',
+      'bulbasaur',
+      'squirtle',
+      'mewtwo',
+      'eevee',
+      'snorlax',
+      'gengar',
+      'dragonite',
+      'gyarados'
+    ];
+    
     // Pokemon list is static, no need to set state
     console.log('Available Pokemon:', availablePokemon);
-  }, [availablePokemon]);
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();

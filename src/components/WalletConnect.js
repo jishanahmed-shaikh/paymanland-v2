@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { PaymanClient } from "@paymanai/payman-ts";
 import './WalletConnect.css';
 
@@ -7,9 +7,30 @@ const WalletConnect = () => {
   const [balance, setBalance] = useState(null);
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [, setScriptLoaded] = useState(false);
   const isFetchingBalance = useRef(false);
   
+  const handlePaymanMessage = useCallback(async (event) => {
+    console.log("Received message:", event.data);
+    if (event.data.type === "payman-oauth-redirect") {
+      setLoading(true);
+      try {
+        // Extract code from the redirect URI
+        const url = new URL(event.data.redirectUri);
+        const code = url.searchParams.get("code");
+        console.log("Received OAuth code:", code ? "Code received" : "No code found");
+        
+        if (code) {
+          await exchangeCodeForToken(code);
+        }
+      } catch (error) {
+        console.error("Error handling OAuth redirect:", error);
+        setLoading(false);
+        alert("Failed to connect wallet. Please try again.");
+      }
+    }
+  }, []);
+
   useEffect(() => {
     console.log("WalletConnect component mounted");
     
@@ -178,27 +199,6 @@ const WalletConnect = () => {
       window.removeEventListener('refreshWalletBalance', handleRefreshBalance);
     };
   }, [client, handlePaymanMessage]);
-  
-  const handlePaymanMessage = async (event) => {
-    console.log("Received message:", event.data);
-    if (event.data.type === "payman-oauth-redirect") {
-      setLoading(true);
-      try {
-        // Extract code from the redirect URI
-        const url = new URL(event.data.redirectUri);
-        const code = url.searchParams.get("code");
-        console.log("Received OAuth code:", code ? "Code received" : "No code found");
-        
-        if (code) {
-          await exchangeCodeForToken(code);
-        }
-      } catch (error) {
-        console.error("Error handling OAuth redirect:", error);
-        setLoading(false);
-        alert("Failed to connect wallet. Please try again.");
-      }
-    }
-  };
   
   const exchangeCodeForToken = async (code) => {
     try {
