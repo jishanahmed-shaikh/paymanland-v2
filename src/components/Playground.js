@@ -4,6 +4,16 @@ import Phaser from 'phaser';
 import GameShop from './GameShop';
 import WalletConnect from './WalletConnect';
 import ChatInterface from './ChatInterface';
+import multiplayerService from '../services/MultiplayerService';
+import { 
+  createOtherPlayerSprite, 
+  updateOtherPlayerSprite, 
+  removeOtherPlayerSprite, 
+  updateAllOtherPlayers, 
+  updateNearbyPlayerNames, 
+  shouldSendPositionUpdate, 
+  createMultiplayerStatusIndicator 
+} from '../utils/multiplayerHelpers';
 // import PaymanDebug from './PaymanDebug'; // Commented out for production
 import '../animations.css';
 
@@ -18,6 +28,13 @@ function Playground() {
   const [showChat, setShowChat] = useState(false);
   const [chatData, setChatData] = useState(null);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  
+  // Multiplayer state
+  const [isMultiplayerConnected, setIsMultiplayerConnected] = useState(false);
+  const [multiplayerPlayers, setMultiplayerPlayers] = useState([]);
+  const [nearbyPlayers, setNearbyPlayers] = useState([]);
+  const lastPositionSent = useRef({ x: 0, y: 0, time: 0 });
+  const otherPlayersSprites = useRef(new Map());
 
   // Add this effect to handle game pause when chat is open
   useEffect(() => {
@@ -36,6 +53,200 @@ function Playground() {
       }
     }
   }, [showChat]);
+
+  // Multiplayer initialization and event handlers
+  useEffect(() => {
+    // Initialize multiplayer connection
+    const initializeMultiplayer = () => {
+      console.log('Initializing multiplayer connection...');
+      
+      // Get Payman authentication status
+      const paymanClient = window.paymanClient;
+      const storedTokenData = localStorage.getItem('paymanToken');
+      let paymanData = {
+        isAuthenticated: false,
+        token: null,
+        realName: null
+      };
+
+      if (paymanClient && storedTokenData) {
+        try {
+          const tokenData = JSON.parse(storedTokenData);
+          paymanData = {
+            isAuthenticated: true,
+            token: tokenData.accessToken,
+            realName: null // We'll fetch this later
+          };
+        } catch (error) {
+          console.error('Error parsing Payman token:', error);
+        }
+      }
+
+      // Connect to multiplayer server
+      multiplayerService.connect({
+        x: location.state?.spawnX || 1920,
+        y: location.state?.spawnY || 1280,
+        avatar: 'avatar-front',
+        ...paymanData
+      });
+
+      // Set up event listeners
+      multiplayerService.on('connected', () => {
+        console.log('Multiplayer connected!');
+        setIsMultiplayerConnected(true);
+      });
+
+      multiplayerService.on('connection-error', (error) => {
+        console.error('Multiplayer connection error:', error);
+        setIsMultiplayerConnected(false);
+      });
+
+      multiplayerService.on('disconnected', (reason) => {
+        console.log('Multiplayer disconnected:', reason);
+        setIsMultiplayerConnected(false);
+        setMultiplayerPlayers([]);
+        // Clear other player sprites
+        otherPlayersSprites.current.clear();
+      });
+
+      multiplayerService.on('other-players', (players) => {
+        console.log('Received other players:', players);
+        setMultiplayerPlayers(players);
+      });
+
+      multiplayerService.on('player-joined', (player) => {
+        console.log('New player joined:', player);
+        setMultiplayerPlayers(prev => [...prev.filter(p => p.id !== player.id), player]);
+      });
+
+      multiplayerService.on('player-left', (playerId) => {
+        console.log('Player left:', playerId);
+        setMultiplayerPlayers(prev => prev.filter(p => p.id !== playerId));
+        
+        // Remove sprite
+        if (otherPlayersSprites.current.has(playerId)) {
+          const sprite = otherPlayersSprites.current.get(playerId);
+          if (sprite && sprite.destroy) {
+            sprite.destroy();
+          }
+          otherPlayersSprites.current.delete(playerId);
+        }
+      });
+
+      multiplayerService.on('player-moved', (moveData) => {
+        // Update player position in state
+        setMultiplayerPlayers(prev => 
+          prev.map(p => 
+            p.id === moveData.id 
+              ? { ...p, x: moveData.x, y: moveData.y, avatar: moveData.avatar }
+              : p
+          )
+        );
+      });
+
+      multiplayerService.on('player-updated', (updateData) => {
+        setMultiplayerPlayers(prev => 
+          prev.map(p => 
+            p.id === updateData.id 
+              ? { ...p, ...updateData }
+              : p
+          )
+        );
+      });
+
+      multiplayerService.on('nearby-players', (players) => {
+        setNearbyPlayers(players);
+      });
+    };
+
+    // Initialize after a short delay to ensure everything is loaded
+    const timer = setTimeout(initializeMultiplayer, 1000);
+
+    return () => {
+      clearTimeout(timer);
+      multiplayerService.disconnect();
+    };
+  }, [location.state]);
+
+  // Monitor Payman authentication changes
+  useEffect(() => {
+    const checkPaymanAuth = () => {
+      const paymanClient = window.paymanClient;
+      const storedTokenData = localStorage.getItem('paymanToken');
+      
+      if (paymanClient && storedTokenData && isMultiplayerConnected) {
+        try {
+          const tokenData = JSON.parse(storedTokenData);
+          
+          // Try to get user info from Payman
+          const getUserInfo = async () => {
+            try {
+              const response = await paymanClient.ask("what is my name and account information?");
+              let realName = null;
+              
+              if (response && response.artifacts && response.artifacts.length > 0) {
+                const content = response.artifacts[0].content;
+                // Try to extract name from response
+                const nameMatch = content.match(/Name[:\s]*([^\n\r]+)/i);
+                if (nameMatch) {
+                  realName = nameMatch[1].trim();
+                }
+              }
+
+              multiplayerService.updatePaymanAuth({
+                isAuthenticated: true,
+                token: tokenData.accessToken,
+                realName: realName,
+                paymanClient: paymanClient
+              });
+            } catch (error) {
+              console.error('Error getting user info from Payman:', error);
+            }
+          };
+
+          getUserInfo();
+        } catch (error) {
+          console.error('Error handling Payman authentication:', error);
+        }
+      }
+    };
+
+    // Check on wallet connection changes
+    const handleWalletChange = () => {
+      setTimeout(checkPaymanAuth, 1000);
+    };
+
+    window.addEventListener('refreshWalletBalance', handleWalletChange);
+    
+    return () => {
+      window.removeEventListener('refreshWalletBalance', handleWalletChange);
+    };
+  }, [isMultiplayerConnected]);
+
+  // Update sprites when multiplayer players change
+  useEffect(() => {
+    if (window.phaserScene && multiplayerPlayers.length > 0) {
+      updateAllOtherPlayers(window.phaserScene, multiplayerPlayers, otherPlayersSprites.current);
+    }
+  }, [multiplayerPlayers]);
+
+  // Update nearby player names
+  useEffect(() => {
+    if (window.phaserScene && nearbyPlayers.length >= 0) {
+      updateNearbyPlayerNames(nearbyPlayers, otherPlayersSprites.current, window.phaserScene);
+    }
+  }, [nearbyPlayers]);
+
+  // Update multiplayer status indicator
+  useEffect(() => {
+    if (window.phaserScene) {
+      createMultiplayerStatusIndicator(
+        window.phaserScene, 
+        isMultiplayerConnected, 
+        multiplayerPlayers.length + (isMultiplayerConnected ? 1 : 0)
+      );
+    }
+  }, [isMultiplayerConnected, multiplayerPlayers.length]);
 
   useEffect(() => {
     const config = {
@@ -116,6 +327,9 @@ function Playground() {
     }
 
     function create() {
+      // Store scene reference for multiplayer updates
+      window.phaserScene = this;
+      
       // Add background
       const background = this.add.image(0, 0, 'background');
       background.setOrigin(0, 0);
@@ -569,6 +783,22 @@ function Playground() {
       // Check proximity to sign
       checkSignProximity();
 
+      // Multiplayer position updates
+      if (player && isMultiplayerConnected) {
+        const currentPos = { x: player.x, y: player.y };
+        const currentAvatar = player.texture.key;
+        
+        if (shouldSendPositionUpdate(currentPos, lastPositionSent.current)) {
+          multiplayerService.updatePosition(currentPos.x, currentPos.y, currentAvatar);
+          lastPositionSent.current = { ...currentPos, time: Date.now() };
+        }
+
+        // Request nearby players periodically
+        if (Date.now() % 30 === 0) { // Every ~500ms (frame dependent)
+          multiplayerService.requestNearbyPlayers(currentPos.x, currentPos.y);
+        }
+      }
+
       // Check for NPC proximity
       const closestNPC = getNearestNPC();
       if (closestNPC && Phaser.Math.Distance.Between(player.x, player.y, closestNPC.x, closestNPC.y) < 150) {
@@ -640,6 +870,49 @@ function Playground() {
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
       <WalletConnect />
       {/* <PaymanDebug /> */}
+      
+      {/* Multiplayer Status Indicator */}
+      {isMultiplayerConnected && (
+        <div style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          backgroundColor: 'rgba(76, 175, 80, 0.9)',
+          color: 'white',
+          padding: '10px 15px',
+          borderRadius: '20px',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          zIndex: 1000,
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+        }}>
+          🌐 {multiplayerPlayers.length + 1} players online
+        </div>
+      )}
+
+      {/* Nearby Players List */}
+      {nearbyPlayers.length > 0 && (
+        <div style={{
+          position: 'absolute',
+          bottom: '160px',
+          right: '20px',
+          backgroundColor: 'rgba(45, 119, 148, 0.9)',
+          color: 'white',
+          padding: '10px 15px',
+          borderRadius: '15px',
+          fontSize: '12px',
+          zIndex: 1000,
+          maxWidth: '200px'
+        }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>Nearby Players:</div>
+          {nearbyPlayers.map(player => (
+            <div key={player.id} style={{ marginBottom: '2px' }}>
+              {player.isPaymanAuthenticated ? '✓' : '•'} {player.name}
+            </div>
+          ))}
+        </div>
+      )}
+      
       <div ref={gameRef} style={{ width: '100%', height: '100%' }} />
       
       {showWelcomePopup && (
