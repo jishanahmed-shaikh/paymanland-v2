@@ -22,6 +22,6 @@
     }
   ],
   "env": {
-    "REACT_APP_MULTIPLAYER_SERVER_URL": "@multiplayer_server_url"
+    "REACT_APP_MULTIPLAYER_SERVER_URL": "https://paymanland.onrender.com"
   }
 }

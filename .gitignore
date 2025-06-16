@@ -1,4 +1,7 @@
-# Logs
+.env
+env.local
+env
+
 logs
 *.log
 npm-debug.log*
@@ -23,6 +26,3 @@ dist-ssr
 *.sln
 *.sw?
 
-.env
-env.local
-env
