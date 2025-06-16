@@ -401,7 +401,6 @@ const WalletConnect = () => {
         
         script.onerror = (error) => {
           console.error("❌ Failed to load Payman Connect script:", error);
-          setScriptLoaded(false);
           scriptLoadedRef.current = false;
         };
         
