@@ -10,6 +10,130 @@ const WalletConnect = () => {
   const [, setScriptLoaded] = useState(false);
   const isFetchingBalance = useRef(false);
   
+  // Define exchangeCodeForToken first
+  const exchangeCodeForToken = useCallback(async (code) => {
+    try {
+      console.log("Exchanging code for token...");
+      
+      // For security, token exchange should be done on the backend
+      // But for testing purposes, we'll check if we can use the client credentials flow
+      const clientId = process.env.REACT_APP_PAYMAN_CLIENT_ID;
+      
+      if (!clientId) {
+        throw new Error("Client ID not configured");
+      }
+
+      // Note: In production, this should be done via your backend API
+      // For now, we'll try the client credentials approach for testing
+      try {
+        // First, let's try to get a client credentials token for testing
+        const clientCredentialsClient = PaymanClient.withClientCredentials({
+          clientId: clientId,
+          clientSecret: process.env.REACT_APP_PAYMAN_CLIENT_SECRET || ""
+        });
+
+        // Test if we can make a request
+        await clientCredentialsClient.ask("list all wallets");
+        
+        // If successful, get the token
+        const tokenResponse = await clientCredentialsClient.getAccessToken();
+        console.log("Full client credentials token response:", tokenResponse);
+        
+        // Store the complete token information
+        const tokenData = {
+          accessToken: tokenResponse.accessToken,
+          expiresIn: tokenResponse.expiresIn,
+          tokenType: tokenResponse.tokenType,
+          scope: tokenResponse.scope,
+          timestamp: Date.now()
+        };
+        
+        localStorage.setItem('paymanToken', JSON.stringify(tokenData));
+        console.log("Token received and stored via client credentials:", tokenData);
+        
+        // Create a new client with the access token
+        const newClient = PaymanClient.withToken(clientId, {
+          accessToken: tokenResponse.accessToken,
+          expiresIn: tokenResponse.expiresIn
+        });
+        
+        setClient(newClient);
+        setIsConnected(true);
+        
+        // Expose client globally
+        window.paymanClient = newClient;
+        console.log("Payman client exposed globally (client credentials)");
+        
+        // Add delay before fetching balance
+        setTimeout(() => {
+          fetchBalance(newClient);
+        }, 1000);
+        
+        setLoading(false);
+        
+      } catch (clientCredError) {
+        console.log("Client credentials approach failed, trying auth code...");
+        
+        // If client credentials doesn't work, try the auth code approach
+        // Note: This is not recommended for production as it exposes the client secret
+        const tempClient = PaymanClient.withAuthCode(
+          {
+              clientId: clientId,
+              clientSecret: process.env.REACT_APP_PAYMAN_CLIENT_SECRET || ""
+          },
+          code
+        );
+        
+        const tokenResponse = await tempClient.getAccessToken();
+        console.log("Full token response:", tokenResponse);
+        
+        // Store the complete token information
+        const tokenData = {
+          accessToken: tokenResponse.accessToken,
+          expiresIn: tokenResponse.expiresIn,
+          tokenType: tokenResponse.tokenType,
+          scope: tokenResponse.scope,
+          refreshToken: tokenResponse.refreshToken,
+          timestamp: Date.now()
+        };
+        
+        localStorage.setItem('paymanToken', JSON.stringify(tokenData));
+        console.log("Token received and stored via auth code:", tokenData);
+        
+        const newClient = PaymanClient.withToken(clientId, {
+          accessToken: tokenResponse.accessToken,
+          expiresIn: tokenResponse.expiresIn
+        });
+        
+        setClient(newClient);
+        setIsConnected(true);
+        
+        // Expose client globally
+        window.paymanClient = newClient;
+        console.log("Payman client exposed globally (auth code)");
+        
+        // Try to fetch balance immediately using the temp client instead of new client
+        try {
+          await fetchBalance(tempClient);
+        } catch (balanceError) {
+          console.log("Balance fetch failed with temp client, trying with new client...");
+          // Add delay before fetching balance to ensure token is properly set
+          setTimeout(() => {
+            fetchBalance(newClient);
+          }, 1000);
+        }
+        
+        setLoading(false);
+      }
+      
+    } catch (error) {
+      console.error('Failed to exchange code for token:', error);
+      console.error('Error details:', error.response?.data || error.message);
+      setLoading(false);
+      alert(`Failed to connect wallet: ${error.message || 'Unknown error'}`);
+    }
+  }, []);
+
   const handlePaymanMessage = useCallback(async (event) => {
     console.log("Received message:", event.data);
     if (event.data.type === "payman-oauth-redirect") {
@@ -29,7 +153,7 @@ const WalletConnect = () => {
         alert("Failed to connect wallet. Please try again.");
       }
     }
-  }, []);
+  }, [exchangeCodeForToken]);
 
   useEffect(() => {
     console.log("WalletConnect component mounted");
@@ -200,128 +324,7 @@ const WalletConnect = () => {
     };
   }, [client, handlePaymanMessage]);
   
-  const exchangeCodeForToken = async (code) => {
-    try {
-      console.log("Exchanging code for token...");
-      
-      // For security, token exchange should be done on the backend
-      // But for testing purposes, we'll check if we can use the client credentials flow
-      const clientId = process.env.REACT_APP_PAYMAN_CLIENT_ID;
-      
-      if (!clientId) {
-        throw new Error("Client ID not configured");
-      }
 
-      // Note: In production, this should be done via your backend API
-      // For now, we'll try the client credentials approach for testing
-      try {
-        // First, let's try to get a client credentials token for testing
-        const clientCredentialsClient = PaymanClient.withClientCredentials({
-          clientId: clientId,
-          clientSecret: process.env.REACT_APP_PAYMAN_CLIENT_SECRET || ""
-        });
-
-        // Test if we can make a request
-        await clientCredentialsClient.ask("list all wallets");
-        
-        // If successful, get the token
-        const tokenResponse = await clientCredentialsClient.getAccessToken();
-        console.log("Full client credentials token response:", tokenResponse);
-        
-        // Store the complete token information
-        const tokenData = {
-          accessToken: tokenResponse.accessToken,
-          expiresIn: tokenResponse.expiresIn,
-          tokenType: tokenResponse.tokenType,
-          scope: tokenResponse.scope,
-          timestamp: Date.now()
-        };
-        
-        localStorage.setItem('paymanToken', JSON.stringify(tokenData));
-        console.log("Token received and stored via client credentials:", tokenData);
-        
-        // Create a new client with the access token
-        const newClient = PaymanClient.withToken(clientId, {
-          accessToken: tokenResponse.accessToken,
-          expiresIn: tokenResponse.expiresIn
-        });
-        
-        setClient(newClient);
-        setIsConnected(true);
-        
-        // Expose client globally
-        window.paymanClient = newClient;
-        console.log("Payman client exposed globally (client credentials)");
-        
-        // Add delay before fetching balance
-        setTimeout(() => {
-          fetchBalance(newClient);
-        }, 1000);
-        
-        setLoading(false);
-        
-      } catch (clientCredError) {
-        console.log("Client credentials approach failed, trying auth code...");
-        
-        // If client credentials doesn't work, try the auth code approach
-        // Note: This is not recommended for production as it exposes the client secret
-      const tempClient = PaymanClient.withAuthCode(
-        {
-            clientId: clientId,
-            clientSecret: process.env.REACT_APP_PAYMAN_CLIENT_SECRET || ""
-        },
-        code
-      );
-      
-      const tokenResponse = await tempClient.getAccessToken();
-        console.log("Full token response:", tokenResponse);
-        
-        // Store the complete token information
-        const tokenData = {
-          accessToken: tokenResponse.accessToken,
-          expiresIn: tokenResponse.expiresIn,
-          tokenType: tokenResponse.tokenType,
-          scope: tokenResponse.scope,
-          refreshToken: tokenResponse.refreshToken,
-          timestamp: Date.now()
-        };
-        
-        localStorage.setItem('paymanToken', JSON.stringify(tokenData));
-        console.log("Token received and stored via auth code:", tokenData);
-        
-        const newClient = PaymanClient.withToken(clientId, {
-        accessToken: tokenResponse.accessToken,
-          expiresIn: tokenResponse.expiresIn
-      });
-      
-      setClient(newClient);
-      setIsConnected(true);
-      
-      // Expose client globally
-      window.paymanClient = newClient;
-      console.log("Payman client exposed globally (auth code)");
-        
-        // Try to fetch balance immediately using the temp client instead of new client
-        try {
-          await fetchBalance(tempClient);
-        } catch (balanceError) {
-          console.log("Balance fetch failed with temp client, trying with new client...");
-          // Add delay before fetching balance to ensure token is properly set
-          setTimeout(() => {
-      fetchBalance(newClient);
-          }, 1000);
-        }
-        
-      setLoading(false);
-      }
-      
-    } catch (error) {
-      console.error('Failed to exchange code for token:', error);
-      console.error('Error details:', error.response?.data || error.message);
-      setLoading(false);
-      alert(`Failed to connect wallet: ${error.message || 'Unknown error'}`);
-    }
-  };
 
   const fetchBalance = async (paymanClient) => {
     // Prevent multiple simultaneous balance fetches
