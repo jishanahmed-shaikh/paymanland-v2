@@ -7,8 +7,7 @@ import '../animations.css';
 
 function AvatarCreation() {
   const navigate = useNavigate();
-  const [selectedPokemon, setSelectedPokemon] = useState('ash');
-  const [pokemonList, setPokemonList] = useState([]);
+  const [selectedPokemon] = useState('ash');
 
   // List of available Pokemon sprites
   const availablePokemon = [
@@ -25,8 +24,9 @@ function AvatarCreation() {
   ];
 
   useEffect(() => {
-    setPokemonList(availablePokemon);
-  }, []);
+    // Pokemon list is static, no need to set state
+    console.log('Available Pokemon:', availablePokemon);
+  }, [availablePokemon]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { agentInfo, createChatHistory } from '../utils/langchainConfig';
+import { agentInfo } from '../utils/langchainConfig';
 
 function ChatInterface({ npcName, onClose, autoFocus }) {
     const [messages, setMessages] = useState([]);

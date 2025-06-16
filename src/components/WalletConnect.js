@@ -8,7 +8,6 @@ const WalletConnect = () => {
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
-  const connectButtonRef = useRef(null);
   const isFetchingBalance = useRef(false);
   
   useEffect(() => {
@@ -178,7 +177,7 @@ const WalletConnect = () => {
       window.removeEventListener("message", handlePaymanMessage);
       window.removeEventListener('refreshWalletBalance', handleRefreshBalance);
     };
-  }, []);
+  }, [client, handlePaymanMessage]);
   
   const handlePaymanMessage = async (event) => {
     console.log("Received message:", event.data);

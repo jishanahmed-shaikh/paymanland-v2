@@ -7,11 +7,8 @@ import ChatInterface from './ChatInterface';
 import multiplayerService from '../services/MultiplayerService';
 import { 
   createOtherPlayerSprite, 
-  updateOtherPlayerSprite, 
-  removeOtherPlayerSprite, 
   updateAllOtherPlayers, 
   updateNearbyPlayerNames, 
-  shouldSendPositionUpdate, 
   createMultiplayerStatusIndicator 
 } from '../utils/multiplayerHelpers';
 // import PaymanDebug from './PaymanDebug'; // Commented out for production
@@ -263,7 +260,7 @@ function Playground() {
     if (window.phaserScene && multiplayerPlayers.length > 0) {
       updateAllOtherPlayers(window.phaserScene, multiplayerPlayers, otherPlayersSprites.current);
     }
-  }, [multiplayerPlayers]);
+  }, [multiplayerPlayers, isMultiplayerConnected]);
 
   // Update nearby player names
   useEffect(() => {
