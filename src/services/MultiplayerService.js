@@ -19,12 +19,17 @@ class MultiplayerService {
       return;
     }
 
-    console.log('Connecting to multiplayer server at:', this.serverUrl);
+    console.log('🔌 Connecting to multiplayer server at:', this.serverUrl);
 
     this.socket = io(this.serverUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
-      forceNew: true
+      forceNew: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      maxReconnectionDelay: 5000,
+      randomizationFactor: 0.5
     });
 
     this.setupEventListeners();
@@ -46,9 +51,25 @@ class MultiplayerService {
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('Disconnected from server:', reason);
+      console.log('❌ Disconnected from server:', reason);
       this.isConnected = false;
       this.emit('disconnected', reason);
+    });
+
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log('🔄 Reconnected to server after', attemptNumber, 'attempts');
+      this.isConnected = true;
+      this.emit('reconnected', attemptNumber);
+    });
+
+    this.socket.on('reconnecting', (attemptNumber) => {
+      console.log('🔄 Reconnecting... attempt', attemptNumber);
+      this.emit('reconnecting', attemptNumber);
+    });
+
+    this.socket.on('reconnect_error', (error) => {
+      console.error('🚨 Reconnection failed:', error);
+      this.emit('reconnect-error', error);
     });
   }
 
@@ -239,7 +260,9 @@ class MultiplayerService {
     return {
       isConnected: this.isConnected,
       serverUrl: this.serverUrl,
-      playersCount: this.otherPlayers.size + (this.currentPlayer ? 1 : 0)
+      playersCount: this.otherPlayers.size + (this.currentPlayer ? 1 : 0),
+      socketConnected: this.socket ? this.socket.connected : false,
+      socketId: this.socket ? this.socket.id : null
     };
   }
 }

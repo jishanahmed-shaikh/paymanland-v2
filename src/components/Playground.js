@@ -112,11 +112,25 @@ function Playground() {
       multiplayerService.on('other-players', (players) => {
         console.log('Received other players:', players);
         setMultiplayerPlayers(players);
+        
+        // IMMEDIATE sprite creation for all existing players
+        if (window.phaserScene && players.length > 0) {
+          console.log(`🎭 Creating sprites immediately for ${players.length} existing players`);
+          players.forEach(player => {
+            createOtherPlayerSprite(window.phaserScene, player, otherPlayersSprites.current);
+          });
+        }
       });
 
       multiplayerService.on('player-joined', (player) => {
         console.log('New player joined:', player);
         setMultiplayerPlayers(prev => [...prev.filter(p => p.id !== player.id), player]);
+        
+        // IMMEDIATE sprite creation (don't wait for React state)
+        if (window.phaserScene) {
+          console.log(`🎭 Creating sprite immediately for new player: ${player.name}`);
+          createOtherPlayerSprite(window.phaserScene, player, otherPlayersSprites.current);
+        }
       });
 
       multiplayerService.on('player-left', (playerId) => {
@@ -134,6 +148,8 @@ function Playground() {
       });
 
       multiplayerService.on('player-moved', (moveData) => {
+        console.log('📥 Received player-moved:', moveData.name, moveData.x, moveData.y);
+        
         // Update player position in state
         setMultiplayerPlayers(prev => 
           prev.map(p => 
@@ -142,6 +158,25 @@ function Playground() {
               : p
           )
         );
+
+        // IMMEDIATE sprite update (don't wait for React state)
+        if (window.phaserScene && otherPlayersSprites.current.has(moveData.id)) {
+          const sprite = otherPlayersSprites.current.get(moveData.id);
+          if (sprite) {
+            console.log(`🎭 Direct sprite update for ${moveData.name}: (${moveData.x}, ${moveData.y})`);
+            sprite.x = moveData.x;
+            sprite.y = moveData.y;
+            
+            if (sprite.nameText) {
+              sprite.nameText.x = moveData.x;
+              sprite.nameText.y = moveData.y - 60;
+            }
+            
+            if (moveData.avatar && sprite.texture.key !== moveData.avatar) {
+              sprite.setTexture(moveData.avatar);
+            }
+          }
+        }
       });
 
       multiplayerService.on('player-updated', (updateData) => {
@@ -247,6 +282,54 @@ function Playground() {
       );
     }
   }, [isMultiplayerConnected, multiplayerPlayers.length]);
+
+  // SIMPLE Position Updates (based on HTML5GameDevs best practices)
+  useEffect(() => {
+    if (!isMultiplayerConnected) return;
+
+    console.log('🔧 Starting position update intervals...');
+
+    // Send position updates 8 times per second (optimal per forum discussion)
+    const positionInterval = setInterval(() => {
+      if (window.currentPlayerState) {
+        const current = window.currentPlayerState;
+        const last = lastPositionSent.current;
+
+        // Send if position changed by more than 3 pixels OR avatar changed
+        const moved = Math.abs(current.x - last.x) > 3 || Math.abs(current.y - last.y) > 3;
+        const avatarChanged = current.avatar !== last.avatar;
+
+        if (moved || avatarChanged || (Date.now() - last.time) > 2000) {
+          console.log('📤 Sending position:', current.x, current.y, current.avatar);
+          
+          multiplayerService.updatePosition(current.x, current.y, current.avatar);
+          
+          lastPositionSent.current = {
+            x: current.x,
+            y: current.y,
+            avatar: current.avatar,
+            time: Date.now()
+          };
+        }
+      }
+    }, 125); // 8 times per second
+
+    // Request nearby players less frequently
+    const nearbyInterval = setInterval(() => {
+      if (window.currentPlayerState) {
+        multiplayerService.requestNearbyPlayers(
+          window.currentPlayerState.x, 
+          window.currentPlayerState.y
+        );
+      }
+    }, 1000); // Once per second
+
+    return () => {
+      clearInterval(positionInterval);
+      clearInterval(nearbyInterval);
+      console.log('🔧 Cleared position update intervals');
+    };
+  }, [isMultiplayerConnected]);
 
   useEffect(() => {
     const config = {
@@ -783,21 +866,16 @@ function Playground() {
       // Check proximity to sign
       checkSignProximity();
 
-      // Multiplayer position updates
-      if (player && isMultiplayerConnected) {
-        const currentPos = { x: player.x, y: player.y };
-        const currentAvatar = player.texture.key;
-        
-        if (shouldSendPositionUpdate(currentPos, lastPositionSent.current)) {
-          multiplayerService.updatePosition(currentPos.x, currentPos.y, currentAvatar);
-          lastPositionSent.current = { ...currentPos, time: Date.now() };
+              // Multiplayer position updates (SIMPLE VERSION)
+        if (player && isMultiplayerConnected) {
+          // Store current player state for updates
+          window.currentPlayerState = {
+            x: player.x,
+            y: player.y,
+            avatar: player.texture.key,
+            moving: cursors.left.isDown || cursors.right.isDown || cursors.up.isDown || cursors.down.isDown
+          };
         }
-
-        // Request nearby players periodically
-        if (Date.now() % 30 === 0) { // Every ~500ms (frame dependent)
-          multiplayerService.requestNearbyPlayers(currentPos.x, currentPos.y);
-        }
-      }
 
       // Check for NPC proximity
       const closestNPC = getNearestNPC();
@@ -910,6 +988,43 @@ function Playground() {
               {player.isPaymanAuthenticated ? '✓' : '•'} {player.name}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Enhanced Debug Panel */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{
+          position: 'absolute',
+          top: '70px',
+          right: '20px',
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          color: 'white',
+          padding: '10px',
+          borderRadius: '8px',
+          fontSize: '11px',
+          zIndex: 1000,
+          maxWidth: '250px',
+          fontFamily: 'monospace'
+        }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '5px', color: '#00ff00' }}>
+            🔧 MULTIPLAYER DEBUG
+          </div>
+          <div>Connection: {isMultiplayerConnected ? '🟢 Connected' : '🔴 Disconnected'}</div>
+          <div>Total Players: {multiplayerPlayers.length + (isMultiplayerConnected ? 1 : 0)}</div>
+          <div>Other Players: {multiplayerPlayers.length}</div>
+          <div>Nearby: {nearbyPlayers.length}</div>
+          {multiplayerPlayers.length > 0 && (
+            <div style={{ marginTop: '8px' }}>
+              <div style={{ fontWeight: 'bold' }}>All Players:</div>
+              {multiplayerPlayers.map(player => (
+                <div key={player.id} style={{ fontSize: '10px', marginLeft: '5px' }}>
+                  {player.isPaymanAuthenticated ? '✓' : '•'} {player.name}
+                  <br />
+                  &nbsp;&nbsp;({Math.round(player.x)}, {Math.round(player.y)})
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
       

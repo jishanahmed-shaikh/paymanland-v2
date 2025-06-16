@@ -35,33 +35,29 @@ export function createOtherPlayerSprite(scene, playerData, otherPlayersSprites) 
   return sprite;
 }
 
-// Update other player sprite position and animation
+// SIMPLE sprite position update (no complex animations)
 export function updateOtherPlayerSprite(scene, playerData, otherPlayersSprites) {
   const sprite = otherPlayersSprites.get(playerData.id);
   if (!sprite) return;
 
-  // Smooth movement animation
-  scene.tweens.add({
-    targets: sprite,
-    x: playerData.x,
-    y: playerData.y,
-    duration: 100,
-    ease: 'Linear'
-  });
+  console.log(`🎭 Updating ${playerData.name} position: (${playerData.x}, ${playerData.y})`);
+
+  // DIRECT position update - no tweening for immediate response
+  sprite.x = playerData.x;
+  sprite.y = playerData.y;
 
   // Update name text position
   if (sprite.nameText) {
-    scene.tweens.add({
-      targets: sprite.nameText,
-      x: playerData.x,
-      y: playerData.y - 60,
-      duration: 100,
-      ease: 'Linear'
-    });
+    sprite.nameText.x = playerData.x;
+    sprite.nameText.y = playerData.y - 60;
   }
 
   // Update avatar texture
-  sprite.setTexture(playerData.avatar);
+  if (sprite.texture.key !== playerData.avatar) {
+    sprite.setTexture(playerData.avatar);
+    console.log(`🎭 Avatar changed for ${playerData.name}: ${playerData.avatar}`);
+  }
+  
   sprite.playerData = playerData;
 }
 

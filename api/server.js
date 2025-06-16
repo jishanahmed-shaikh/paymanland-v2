@@ -26,15 +26,35 @@ const io = socketIo(server, {
 // In-memory storage for active players
 const activePlayers = new Map();
 const defaultNames = [
-  "Explorer", "Adventurer", "Wanderer", "Traveler", "Seeker", 
-  "Navigator", "Pioneer", "Voyager", "Nomad", "Pathfinder"
+  "Alex", "John", "Sarah", "Emma", "Mike", "Lisa", "David", "Anna",
+  "Chris", "Maria", "Tom", "Kate", "Jack", "Sophie", "Ryan", "Lucy",
+  "Mark", "Elena", "Nick", "Zara", "Leo", "Maya", "Sam", "Aria",
+  "Max", "Jade", "Ben", "Nova", "Luke", "Iris", "Jake", "Luna"
 ];
+
+const usedNames = new Set();
 
 // Generate a default name for anonymous players
 function generateDefaultName() {
-  const randomName = defaultNames[Math.floor(Math.random() * defaultNames.length)];
-  const randomNumber = Math.floor(Math.random() * 9999);
-  return `${randomName}${randomNumber}`;
+  let attempts = 0;
+  let name;
+  
+  do {
+    const randomName = defaultNames[Math.floor(Math.random() * defaultNames.length)];
+    const randomNumber = Math.floor(Math.random() * 999) + 1;
+    name = `${randomName}${randomNumber}`;
+    attempts++;
+  } while (usedNames.has(name) && attempts < 50);
+  
+  usedNames.add(name);
+  return name;
+}
+
+// Clean up used names when players disconnect
+function releasePlayerName(name) {
+  if (name && !name.includes('@') && !name.includes('✓')) {
+    usedNames.delete(name);
+  }
 }
 
 // Socket.IO connection handling
@@ -74,24 +94,52 @@ io.on('connection', (socket) => {
     console.log(`Total active players: ${activePlayers.size}`);
   });
 
-  // Handle player position updates
+  // Handle player position updates (improved)
   socket.on('player-move', (positionData) => {
     const playerId = socket.id;
     const player = activePlayers.get(playerId);
     
     if (player) {
+      // Validate position data
+      if (typeof positionData.x !== 'number' || typeof positionData.y !== 'number') {
+        console.warn(`Invalid position data from ${playerId}:`, positionData);
+        return;
+      }
+
+      // Store previous position for debugging
+      const prevX = player.x;
+      const prevY = player.y;
+
       // Update player position and avatar
       player.x = positionData.x;
       player.y = positionData.y;
       player.avatar = positionData.avatar || player.avatar;
       player.lastUpdate = Date.now();
 
-      // Broadcast position update to all other clients
-      socket.broadcast.emit('player-moved', {
+      // Log significant movements for debugging
+      const distance = Math.sqrt(Math.pow(player.x - prevX, 2) + Math.pow(player.y - prevY, 2));
+      if (distance > 50) {
+        console.log(`📍 ${player.name} moved ${distance.toFixed(1)}px to (${player.x}, ${player.y})`);
+      }
+
+      // Broadcast position update to all other clients with additional data
+      const updateData = {
         id: playerId,
+        name: player.name,
         x: player.x,
         y: player.y,
-        avatar: player.avatar
+        avatar: player.avatar,
+        isPaymanAuthenticated: player.isPaymanAuthenticated,
+        timestamp: Date.now()
+      };
+
+      socket.broadcast.emit('player-moved', updateData);
+      
+      // Also emit to sender for confirmation (optional)
+      socket.emit('position-confirmed', {
+        x: player.x,
+        y: player.y,
+        timestamp: updateData.timestamp
       });
     }
   });
@@ -183,6 +231,10 @@ io.on('connection', (socket) => {
     
     if (player) {
       console.log(`Player ${player.name} (${playerId}) disconnected`);
+      
+      // Release the player's name for reuse
+      releasePlayerName(player.name);
+      
       activePlayers.delete(playerId);
       
       // Broadcast player left to all other clients
