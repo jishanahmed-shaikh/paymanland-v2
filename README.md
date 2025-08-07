@@ -1,5 +1,9 @@
-# 🌟 Payman Land - Virtual Fashion Metaverse with AI-Powered Try-On Technology
+<div align="center">
 
+# 🌟 Payman Land - Virtual Fashion Metaverse with AI-Powered Try-On Technology
+</div>
+
+<div align="center">
 [![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-paymanland.vercel.app-blue?style=for-the-badge)](https://paymanland.vercel.app)
 [![YouTube Demo](https://img.shields.io/badge/📺_Demo_Video-YouTube-red?style=for-the-badge)](https://youtu.be/1XU26-WcdqU?si=B1eC2VGsxWFGqFxY)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
@@ -14,6 +18,7 @@
 ![Ethereum](https://img.shields.io/badge/Ethereum-Ethers.js-3C3C3D?style=flat&logo=ethereum&logoColor=white)
 ![Google AI](https://img.shields.io/badge/Google_AI-Gemini-4285F4?style=flat&logo=google&logoColor=white)
 ![LangChain](https://img.shields.io/badge/LangChain-0.3.27-1C3C3C?style=flat&logo=langchain&logoColor=white)
+</div>
 
 ![Payman Land Banner](https://github.com/user-attachments/assets/d7396de7-e1f4-435e-98d8-7119313ce507)
 
