@@ -18,6 +18,7 @@
 ![Ethereum](https://img.shields.io/badge/Ethereum-Ethers.js-3C3C3D?style=flat&logo=ethereum&logoColor=white)
 ![Google AI](https://img.shields.io/badge/Google_AI-Gemini-4285F4?style=flat&logo=google&logoColor=white)
 ![LangChain](https://img.shields.io/badge/LangChain-0.3.27-1C3C3C?style=flat&logo=langchain&logoColor=white)
+
 </div>
 
 ![Payman Land Banner](https://github.com/user-attachments/assets/d7396de7-e1f4-435e-98d8-7119313ce507)
