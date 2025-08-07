@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🌟 Payman Land - Virtual Fashion Metaverse with AI-Powered Try-On Technology
+# 🌟 PAYMANLAN - Virtual Fashion Metaverse with AI-Powered Try-On Technology
 
 <img src="paymanland.jpg" alt="Payman Land Logo" width="250" height="250">
 
@@ -23,11 +23,10 @@
 ![Google AI](https://img.shields.io/badge/Google_AI-Gemini-4285F4?style=flat&logo=google&logoColor=white)
 ![LangChain](https://img.shields.io/badge/LangChain-0.3.27-1C3C3C?style=flat&logo=langchain&logoColor=white)
 
-</div>
 
 ## 🚀 Project Evolution: From TRY-FIT to Payman Land
 
-![Payman Land Banner](https://github.com/user-attachments/assets/d7396de7-e1f4-435e-98d8-7119313ce507)
+</div>
 
 **Payman Land** represents the revolutionary evolution of our original **TRY-FIT** concept - transforming from a simple virtual try-on application into a comprehensive **multiplayer fashion metaverse** powered by cutting-edge AI and blockchain technology.
 
@@ -43,6 +42,8 @@ Our journey began with **TRY-FIT**, a pioneering virtual fashion platform where 
 ### 🌟 The Payman Land Revolution
 
 Building upon TRY-FIT's foundation, **Payman Land** has evolved into a **next-generation virtual fashion metaverse** featuring:
+
+![Payman Land Banner](https://github.com/user-attachments/assets/d7396de7-e1f4-435e-98d8-7119313ce507)
 
 ## ✨ Key Features
 
