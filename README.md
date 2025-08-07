@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🌟 PAYMANLAN - Virtual Fashion Metaverse with AI-Powered Try-On Technology
+# 🌟 PAYMANLAND - Virtual Fashion Metaverse with AI-Powered Try-On Technology
 
 <img src="paymanland.jpg" alt="Payman Land Logo" width="250" height="250">
 
@@ -22,7 +22,6 @@
 ![Ethereum](https://img.shields.io/badge/Ethereum-Ethers.js-3C3C3D?style=flat&logo=ethereum&logoColor=white)
 ![Google AI](https://img.shields.io/badge/Google_AI-Gemini-4285F4?style=flat&logo=google&logoColor=white)
 ![LangChain](https://img.shields.io/badge/LangChain-0.3.27-1C3C3C?style=flat&logo=langchain&logoColor=white)
-
 
 ## 🚀 Project Evolution: From TRY-FIT to Payman Land
 
@@ -160,7 +159,7 @@ payman-land/
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/jishanahmed-shaikh/payman-land.git
+git clone https://github.com/jishanahmed-shaikh/paymanland-v2.git
 cd payman-land
 ```
 
@@ -343,6 +342,13 @@ We welcome contributions! Please follow these steps:
 ## 📄 License
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+## � Conntributors
+
+This is a **collaborative project** developed by:
+
+- **[Om S Bhojane](https://github.com/ombhojane)** - Lead Developer & AI Integration Specialist
+- **[Jishanahmed AR Shaikh](https://github.com/jishanahmed-shaikh)** - Co-Developer & Project Architect
 
 ## 🙏 Acknowledgments
 
