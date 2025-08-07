@@ -2,7 +2,7 @@
 
 # 🌟 Payman Land - Virtual Fashion Metaverse with AI-Powered Try-On Technology
 
-![Payman Land Logo](paymanland.jpg)
+<img src="paymanland.jpg" alt="Payman Land Logo" width="250" height="250">
 
 </div>
 
